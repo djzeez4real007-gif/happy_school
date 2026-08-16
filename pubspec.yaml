@@ -1,0 +1,46 @@
+name: happy_school
+description: "Happy School ERP System"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.9.0
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+
+    
+
+  hive: ^2.2.3
+  hive_flutter: ^1.1.0
+
+  intl: ^0.20.2
+  share_plus: ^11.1.0
+  pdf: ^3.11.1
+  printing: ^5.13.4
+  path_provider: ^2.1.4
+  shared_preferences: ^2.5.3
+  open_filex: ^4.7.0
+
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.3.2
+  font_awesome_flutter: ^10.12.0
+  image_picker: ^1.2.0
+  crypto: ^3.0.3
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/school_logo.png
+    - assets/icons/
+    - assets/fonts/

@@ -1,0 +1,53 @@
+High value (add these first)
+
+User roles & login security
+Admin, Principal, Class Teacher, Subject Teacher, Accountant, Parent.
+Right now login is open; real use needs roles and permissions.
+Parent / student portal
+Parents see results, fees, attendance, announcements.
+Can be a simple web view or a separate light app.
+Fee reminders & debtors workflow
+You have fees; add auto reminders, payment plans, and a clear “who owes what” dashboard with export.
+Exam / continuous assessment setup
+Configurable CA1, CA2, Exam weights per session (e.g. 20/20/60), not fixed in code.
+Bulk import / export
+Excel import for students, results, fees.
+Export broadsheet, debtors, attendance to Excel/PDF.
+Backup & restore
+One-tap export of Hive data (JSON/zip) and restore. Critical for offline school apps.
+
+
+Strong next features
+
+Staff payroll (simple)
+Salary structure, monthly payslip PDF, basic deductions.
+Library module
+Books, borrow/return, overdue list.
+Inventory / store
+Uniforms, books, lab items — stock in/out.
+Behaviour / discipline log
+Incidents, warnings, suspensions linked to the student profile.
+ID card generator
+Student/staff ID cards with photo, class, session — PDF print.
+SMS / WhatsApp notifications
+Result release, fee due, attendance alert (via API).
+Academic calendar
+Term dates, holidays, exam weeks — used by attendance and reports.
+Multi-session analytics
+Compare performance across terms/years, subject averages, class rankings over time.
+
+
+Polish that makes it feel finished
+
+Global session setting
+One place to set “Current session / term” so you don’t pick it on every screen.
+Audit log
+Who changed results, fees, promotions — and when.
+Photo on student profile
+Already partly there; make it consistent everywhere (list, report card, ID).
+Print centre
+One screen: report cards, broadsheet, receipts, ID cards, attendance sheet.
+Dark mode
+Easy win for long evening result-entry sessions.
+Offline sync indicator
+Clear “Saved locally” status so staff trust the app with no internet.
