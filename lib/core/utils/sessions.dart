@@ -1,9 +1,9 @@
-/// Academic sessions from a start year through well beyond 2040.
+/// Academic sessions from a start year through well beyond 2050.
 class Sessions {
   Sessions._();
 
-  /// e.g. 2020/2021 ... 2050/2051
-  static List<String> list({int fromYear = 2020, int toYear = 2050}) {
+  /// e.g. 2020/2021 ... 2100/2101
+  static List<String> list({int fromYear = 2020, int toYear = 2100}) {
     final out = <String>[];
     for (int y = fromYear; y <= toYear; y++) {
       out.add('$y/${y + 1}');

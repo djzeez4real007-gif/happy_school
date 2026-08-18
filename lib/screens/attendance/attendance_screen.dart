@@ -1,6 +1,8 @@
 // lib/screens/attendance/attendance_screen.dart
 
 import 'package:flutter/material.dart';
+
+import '../../core/utils/sessions.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/premium_feedback.dart';
 import 'package:intl/intl.dart';
@@ -38,10 +40,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   // SESSIONS
   // ============================================================
 
-  final List<String> sessions = List.generate(
-    15,
-    (index) => "${2026 + index}/${2027 + index}",
-  );
+  final List<String> sessions = Sessions.list();
 
   final List<String> terms = ["First Term", "Second Term", "Third Term"];
 

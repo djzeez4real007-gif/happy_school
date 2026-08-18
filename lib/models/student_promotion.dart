@@ -13,6 +13,9 @@ class StudentPromotion {
   final bool eligible;
   final bool selected;
 
+  /// promoted | repeated | graduated | left
+  final String outcome;
+
   const StudentPromotion({
     required this.admissionNo,
     required this.studentName,
@@ -23,12 +26,17 @@ class StudentPromotion {
     required this.average,
     required this.eligible,
     this.selected = false,
+    this.outcome = 'promoted',
   });
+
+  bool get isRepeated => outcome == 'repeated';
+  bool get isPromoted => outcome == 'promoted';
 
   StudentPromotion copyWith({
     String? toClass,
     String? toSession,
     bool? selected,
+    String? outcome,
   }) {
     return StudentPromotion(
       admissionNo: admissionNo,
@@ -40,6 +48,7 @@ class StudentPromotion {
       average: average,
       eligible: eligible,
       selected: selected ?? this.selected,
+      outcome: outcome ?? this.outcome,
     );
   }
 
@@ -54,6 +63,7 @@ class StudentPromotion {
       'average': average,
       'eligible': eligible,
       'selected': selected,
+      'outcome': outcome,
     };
   }
 
@@ -68,6 +78,9 @@ class StudentPromotion {
       average: (map['average'] as num?)?.toDouble() ?? 0.0,
       eligible: map['eligible'] == true,
       selected: map['selected'] == true,
+      outcome: map['outcome']?.toString().isNotEmpty == true
+          ? map['outcome'].toString()
+          : 'promoted',
     );
   }
 }

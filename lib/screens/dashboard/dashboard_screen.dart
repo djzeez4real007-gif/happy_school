@@ -24,10 +24,12 @@ import '../attendance/attendance_screen.dart';
 import '../timetable/timetable_screen.dart';
 import '../timetable/timetable_settings_screen.dart';
 import '../promotion/student_promotion_screen.dart';
+import '../parent/parent_portal_screen.dart';
 
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/stat_card.dart';
 import '../../services/auth_service.dart';
+import '../../services/student_class_storage.dart';
 import '../../core/permissions.dart';
 
 class DashboardScreen extends StatefulWidget {
@@ -141,6 +143,50 @@ class _DashboardScreenState extends State<DashboardScreen>
       milliseconds: (seconds * 1000).round(),
     );
     _announcementController.repeat();
+  }
+
+
+  Future<List<Map<String, String>>> _loadParentChildren() async {
+    final user = AuthService.currentUser;
+    if (user == null) return [];
+
+    var linked = List<String>.from(user.childrenAdmissionNos);
+    if (linked.isEmpty &&
+        (user.linkedAdmissionNos ?? '').trim().isNotEmpty) {
+      linked = user.linkedAdmissionNos!
+          .split(',')
+          .map((e) => e.trim())
+          .where((e) => e.isNotEmpty)
+          .toList();
+    }
+    if (linked.isEmpty) return [];
+
+    final students = await StudentStorage.getStudents();
+    final assignments = await StudentClassStorage.getStudents();
+    final out = <Map<String, String>>[];
+
+    String norm(String s) =>
+        s.trim().toLowerCase().replaceAll(RegExp(r'\s+'), '');
+
+    for (final no in linked) {
+      final target = norm(no);
+      final match =
+          students.where((s) => norm(s.admissionNo) == target).toList();
+      if (match.isEmpty) continue;
+      final st = match.first;
+      final asg = assignments
+          .where((a) => norm(a.admissionNo) == norm(st.admissionNo))
+          .toList();
+      asg.sort((a, b) => b.session.compareTo(a.session));
+      final latest = asg.isNotEmpty ? asg.first : null;
+      out.add({
+        'name': st.fullName,
+        'admissionNo': st.admissionNo,
+        'className': latest?.className ?? '',
+        'session': latest?.session ?? '',
+      });
+    }
+    return out;
   }
 
   // ============================================================
@@ -302,7 +348,103 @@ class _DashboardScreenState extends State<DashboardScreen>
               // ==================================================
               // DASHBOARD HEADER
               // ==================================================
-              DashboardHeader(greeting: greeting(), name: userName),
+              DashboardHeader(
+                greeting: greeting(),
+                name: userName,
+                // Uncomment to show a picture ad under the blue greeting:
+                // adImage: 'assets/images/ad_banner.png',
+                // adCaption: 'Enrolment open — contact the office',
+              ),
+
+
+              // Parent: show linked children on main dashboard
+              if (role == 'parent') ...[
+                FutureBuilder<List<Map<String, String>>>(
+                  future: _loadParentChildren(),
+                  builder: (context, snap) {
+                    final kids = snap.data ?? [];
+                    if (snap.connectionState == ConnectionState.waiting) {
+                      return const Padding(
+                        padding: EdgeInsets.only(bottom: 16),
+                        child: LinearProgressIndicator(minHeight: 2),
+                      );
+                    }
+                    if (kids.isEmpty) {
+                      return Container(
+                        width: double.infinity,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: AppColors.card(context),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: AppColors.cardBorder(context)),
+                        ),
+                        child: const Text(
+                          'No children linked to this account yet.',
+                          style: TextStyle(fontWeight: FontWeight.w600),
+                        ),
+                      );
+                    }
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'My Children',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w900,
+                            fontSize: 18,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        ...kids.map((k) {
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.card(context),
+                              borderRadius: BorderRadius.circular(14),
+                              border: Border.all(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                            child: ListTile(
+                              leading: CircleAvatar(
+                                backgroundColor: const Color(0xFF2563EB)
+                                    .withValues(alpha: 0.12),
+                                child: Text(
+                                  (k['name'] ?? '?')[0].toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Color(0xFF2563EB),
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                k['name'] ?? '',
+                                style: const TextStyle(fontWeight: FontWeight.w800),
+                              ),
+                              subtitle: Text(
+                                '${k['admissionNo'] ?? ''}'
+                                '${(k['className'] ?? '').isNotEmpty ? ' · ${k['className']}' : ''}'
+                                '${(k['session'] ?? '').isNotEmpty ? ' · ${k['session']}' : ''}',
+                              ),
+                              trailing: const Icon(Icons.chevron_right),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const ParentPortalScreen(),
+                                  ),
+                                );
+                              },
+                            ),
+                          );
+                        }),
+                        const SizedBox(height: 8),
+                      ],
+                    );
+                  },
+                ),
+              ],
 
               const SizedBox(height: 25),
 
@@ -595,7 +737,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                     StatCard(
                       icon: Icons.calendar_month,
                       title: "Timetable",
-                      value: "Manage",
+                      value: Permissions.canConfigureTimetable(role)
+                          ? "Manage"
+                          : "View",
                       color: Colors.deepOrange,
                       onTap: () async {
                         await Navigator.push(
@@ -610,6 +754,8 @@ class _DashboardScreenState extends State<DashboardScreen>
                         await loadDashboard();
                       },
                     ),
+                    // Configure only for admin / principal
+                    if (Permissions.canConfigureTimetable(role))
                     StatCard(
                       icon: Icons.settings,
                       title: "Timetable Settings",

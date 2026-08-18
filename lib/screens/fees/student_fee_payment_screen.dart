@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/sessions.dart';
 import '../../core/widgets/premium_feedback.dart';
 import '../../core/widgets/premium_form.dart';
 import '../../models/school_fee.dart';
@@ -29,8 +30,14 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   SchoolFee? schoolFee;
 
   final amountController = TextEditingController();
+  final studentSearchController = TextEditingController();
+  String studentSearch = '';
   String receiptNo = '';
   String paymentMethod = 'Cash';
+  String selectedSession = Sessions.current();
+  String selectedTerm = 'First Term';
+  final List<String> sessions = Sessions.list();
+  final List<String> terms = Sessions.terms;
   double totalFee = 0;
   double totalPaid = 0;
   double balance = 0;
@@ -54,27 +61,44 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   }
 
   Future<void> loadStudentData(Student student) async {
-    studentClass = await StudentClassStorage.getStudent(student.admissionNo);
+    // Prefer assignment for the selected session (promoted / current class)
+    final allAssignments = await StudentClassStorage.getStudents();
+    final forSession = allAssignments
+        .where((a) =>
+            a.admissionNo.trim().toLowerCase() ==
+                student.admissionNo.trim().toLowerCase() &&
+            a.session.trim() == selectedSession.trim())
+        .toList();
+    if (forSession.isNotEmpty) {
+      studentClass = forSession.last;
+    } else {
+      studentClass =
+          await StudentClassStorage.getStudent(student.admissionNo);
+    }
+
     if (studentClass != null) {
       schoolFee = await SchoolFeeStorage.getFee(
         studentClass!.className,
-        '2026/2027',
-        'First Term',
+        selectedSession,
+        selectedTerm,
       );
       if (schoolFee != null) {
-        totalFee = schoolFee!.tuitionFee +
-            schoolFee!.developmentLevy +
-            schoolFee!.examinationFee +
-            schoolFee!.sportFee +
-            schoolFee!.ictFee +
-            schoolFee!.ptaFee +
-            schoolFee!.otherCharges;
+        totalFee = schoolFee!.totalFee;
       } else {
         totalFee = 0;
       }
-      totalPaid =
-          await StudentFeePaymentStorage.totalPaid(student.admissionNo);
-      balance = totalFee - totalPaid;
+      totalPaid = await StudentFeePaymentStorage.totalPaidForTerm(
+        student.admissionNo,
+        session: selectedSession,
+        term: selectedTerm,
+      );
+      final paidNow = double.tryParse(amountController.text) ?? 0;
+      balance = totalFee - (totalPaid + paidNow);
+    } else {
+      schoolFee = null;
+      totalFee = 0;
+      totalPaid = 0;
+      balance = 0;
     }
     if (mounted) setState(() {});
   }
@@ -113,8 +137,8 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
       balance: balance,
       paymentDate: DateTime.now().toString(),
       paymentMethod: paymentMethod,
-      session: '2026/2027',
-      term: 'First Term',
+      session: selectedSession,
+      term: selectedTerm,
     );
     try {
       await StudentFeePaymentStorage.savePayment(payment);
@@ -151,7 +175,18 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   @override
   void dispose() {
     amountController.dispose();
+    studentSearchController.dispose();
     super.dispose();
+  }
+
+  List<Student> get filteredStudents {
+    final q = studentSearch.trim().toLowerCase();
+    if (q.isEmpty) return const [];
+    return students
+        .where((s) =>
+            s.fullName.toLowerCase().contains(q) ||
+            s.admissionNo.toLowerCase().contains(q))
+        .toList();
   }
 
   @override
@@ -181,26 +216,199 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
                 ),
               ),
               const SizedBox(height: 14),
-              DropdownButtonFormField<Student>(
-                value: selectedStudent,
+              DropdownButtonFormField<String>(
+                value: sessions.contains(selectedSession)
+                    ? selectedSession
+                    : sessions.first,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Select Student',
-                  prefixIcon: Icon(Icons.person_rounded),
+                  labelText: 'Session',
+                  prefixIcon: Icon(Icons.calendar_month_rounded),
                 ),
-                items: students
-                    .map(
-                      (s) => DropdownMenuItem(
-                        value: s,
-                        child: Text('${s.admissionNo} - ${s.fullName}'),
-                      ),
-                    )
+                items: sessions
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
                     .toList(),
-                onChanged: (value) async {
-                  selectedStudent = value;
-                  if (value != null) await loadStudentData(value);
+                onChanged: (v) async {
+                  if (v == null) return;
+                  selectedSession = v;
+                  if (selectedStudent != null) {
+                    await loadStudentData(selectedStudent!);
+                  } else {
+                    setState(() {});
+                  }
                 },
               ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedTerm,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Term',
+                  prefixIcon: Icon(Icons.event_note_rounded),
+                ),
+                items: terms
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (v) async {
+                  if (v == null) return;
+                  selectedTerm = v;
+                  if (selectedStudent != null) {
+                    await loadStudentData(selectedStudent!);
+                  } else {
+                    setState(() {});
+                  }
+                },
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: studentSearchController,
+                decoration: const InputDecoration(
+                  labelText: 'Search student',
+                  hintText: 'Type name or admission number…',
+                  prefixIcon: Icon(Icons.search_rounded),
+                ),
+                onChanged: (v) {
+                  setState(() {
+                    studentSearch = v;
+                    if (selectedStudent != null) {
+                      final still = filteredStudents.any(
+                        (s) => s.admissionNo == selectedStudent!.admissionNo,
+                      );
+                      if (!still) {
+                        selectedStudent = null;
+                        studentClass = null;
+                        schoolFee = null;
+                        totalFee = 0;
+                        totalPaid = 0;
+                        balance = 0;
+                      }
+                    }
+                  });
+                },
+              ),
+              const SizedBox(height: 10),
+              if (selectedStudent != null)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF6EE7B7)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.check_circle,
+                        color: Color(0xFF059669),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${selectedStudent!.admissionNo} — ${selectedStudent!.fullName}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF065F46),
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: 'Clear',
+                        icon: const Icon(Icons.close, size: 18),
+                        onPressed: () {
+                          setState(() {
+                            selectedStudent = null;
+                            studentClass = null;
+                            schoolFee = null;
+                            totalFee = 0;
+                            totalPaid = 0;
+                            balance = 0;
+                            studentSearch = '';
+                            studentSearchController.clear();
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              if (selectedStudent != null) const SizedBox(height: 8),
+              if (studentSearch.trim().isNotEmpty && selectedStudent == null)
+                Container(
+                  constraints: const BoxConstraints(maxHeight: 220),
+                  decoration: BoxDecoration(
+                    color: AppColors.card(context),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.cardBorder(context)),
+                  ),
+                  child: filteredStudents.isEmpty
+                      ? const Padding(
+                          padding: EdgeInsets.all(14),
+                          child: Text(
+                            'No student matches',
+                            style: TextStyle(color: Colors.grey),
+                          ),
+                        )
+                      : ListView.separated(
+                          shrinkWrap: true,
+                          itemCount: filteredStudents.length,
+                          separatorBuilder: (_, __) => Divider(
+                            height: 1,
+                            color: Colors.grey.shade200,
+                          ),
+                          itemBuilder: (context, index) {
+                            final s = filteredStudents[index];
+                            return ListTile(
+                              dense: true,
+                              leading: CircleAvatar(
+                                radius: 16,
+                                backgroundColor: const Color(0xFF059669),
+                                child: Text(
+                                  s.firstName.isNotEmpty
+                                      ? s.firstName[0].toUpperCase()
+                                      : '?',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              title: Text(
+                                s.fullName,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w700,
+                                  fontSize: 14,
+                                ),
+                              ),
+                              subtitle: Text(
+                                s.admissionNo,
+                                style: const TextStyle(fontSize: 12),
+                              ),
+                              onTap: () async {
+                                selectedStudent = s;
+                                studentSearchController.text = s.fullName;
+                                studentSearch = s.fullName;
+                                setState(() {});
+                                await loadStudentData(s);
+                              },
+                            );
+                          },
+                        ),
+                ),
+              if (studentSearch.trim().isEmpty && selectedStudent == null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    'Start typing to see matching students',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ),
               if (studentClass != null) ...[
                 const SizedBox(height: 12),
                 Text(
@@ -208,8 +416,18 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
                   style: TextStyle(color: AppColors.textSecondary(context)),
                 ),
                 Text(
-                  'Total fee: ₦${totalFee.toStringAsFixed(0)} · Paid: ₦${totalPaid.toStringAsFixed(0)}',
+                  '$selectedSession · $selectedTerm',
                   style: TextStyle(color: AppColors.textSecondary(context)),
+                ),
+                Text(
+                  schoolFee == null
+                      ? 'No fee set for this class/session/term'
+                      : 'Total fee: ₦${totalFee.toStringAsFixed(0)} · Paid this term: ₦${totalPaid.toStringAsFixed(0)}',
+                  style: TextStyle(
+                    color: schoolFee == null
+                        ? const Color(0xFFDC2626)
+                        : AppColors.textSecondary(context),
+                  ),
                 ),
               ],
               const SizedBox(height: 14),

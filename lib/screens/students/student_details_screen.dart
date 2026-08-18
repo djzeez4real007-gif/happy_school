@@ -8,8 +8,10 @@ import '../../services/audit_log_storage.dart';
 import '../../services/student_storage.dart';
 import '../../services/student_class_storage.dart';
 import 'student_registration_screen.dart';
-import '../../services/id_card_pdf_service.dart';
-import '../../services/id_card_pdf_service.dart';
+import 'student_id_card_preview_screen.dart';
+import '../../services/student_promotion_storage.dart';
+import '../../services/student_status_service.dart';
+import '../../models/student_promotion.dart';
 
 class StudentDetailsScreen extends StatefulWidget {
   final Student student;
@@ -27,6 +29,12 @@ class StudentDetailsScreen extends StatefulWidget {
 
 class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
   StudentClass? studentClass;
+  List<StudentClass> classHistory = [];
+  List<StudentPromotion> promotionHistory = [];
+  bool isGraduated = false;
+  String? graduationSession;
+  bool hasLeft = false;
+  String? leftSession;
 
   @override
   void initState() {
@@ -49,10 +57,31 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
       result = history.first;
     }
 
+    final promotions = await StudentPromotionStorage.getPromotions();
+    final mine = promotions
+        .where((p) =>
+            p.admissionNo.trim().toLowerCase() ==
+            widget.student.admissionNo.trim().toLowerCase())
+        .toList();
+    mine.sort((a, b) => b.toSession.compareTo(a.toSession));
+
+    final grad = await StudentStatusService.graduationRecord(
+      widget.student.admissionNo,
+    );
+    final left = await StudentStatusService.leftRecord(
+      widget.student.admissionNo,
+    );
+
     if (!mounted) return;
 
     setState(() {
       studentClass = result;
+      classHistory = history;
+      promotionHistory = mine;
+      isGraduated = grad != null;
+      graduationSession = grad?.session;
+      hasLeft = left != null;
+      leftSession = left?.session;
     });
   }
 
@@ -138,13 +167,18 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
           IconButton(
             icon: const Icon(Icons.badge_outlined),
             tooltip: "Print ID Card",
-            onPressed: () async {
-              await IdCardPdfService.generateStudentIdCard(
-                student: widget.student,
-                studentClass: studentClass,
-                session: studentClass?.session.isNotEmpty == true
-                    ? studentClass!.session
-                    : '2026/2027',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => StudentIdCardPreviewScreen(
+                    student: widget.student,
+                    studentClass: studentClass,
+                    session: studentClass?.session.isNotEmpty == true
+                        ? studentClass!.session
+                        : '2026/2027',
+                  ),
+                ),
               );
             },
           ),
@@ -220,7 +254,130 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
               studentClass?.session ?? "Not Assigned Yet",
             ),
 
+            if (isGraduated)
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                color: const Color(0xFFD1FAE5),
+                child: ListTile(
+                  leading: const Icon(Icons.school, color: Color(0xFF059669)),
+                  title: const Text(
+                    'Status: GRADUATED',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF059669),
+                    ),
+                  ),
+                  subtitle: Text(
+                    graduationSession == null
+                        ? 'Alumni — completed SS3'
+                        : 'Graduation session: $graduationSession',
+                  ),
+                ),
+              ),
+
+            if (hasLeft)
+              Card(
+                margin: const EdgeInsets.symmetric(vertical: 6),
+                color: const Color(0xFFF1F5F9),
+                child: ListTile(
+                  leading: const Icon(Icons.person_off_outlined, color: Color(0xFF64748B)),
+                  title: const Text(
+                    'Status: LEFT SCHOOL',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                  subtitle: Text(
+                    leftSession == null
+                        ? 'Did not return for the next class'
+                        : 'Recorded for session: $leftSession',
+                  ),
+                ),
+              ),
+
             // Term removed — class assignment is session-based only.
+
+            if (promotionHistory.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Promotion / Repeat history',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...promotionHistory.map((p) {
+                final repeated = p.outcome == 'repeated';
+                final graduated = p.outcome == 'graduated' ||
+                    p.toClass.trim().toLowerCase() == 'graduated';
+                final leftSchool = p.outcome == 'left' ||
+                    p.toClass.trim().toLowerCase() == 'left';
+                final title = graduated
+                    ? 'GRADUATED'
+                    : leftSchool
+                        ? 'LEFT SCHOOL'
+                        : repeated
+                            ? 'REPEATED'
+                            : 'PROMOTED';
+                final color = graduated
+                    ? const Color(0xFF059669)
+                    : leftSchool
+                        ? const Color(0xFF64748B)
+                        : repeated
+                            ? const Color(0xFFD97706)
+                            : const Color(0xFF2563EB);
+                final icon = graduated
+                    ? Icons.workspace_premium_rounded
+                    : leftSchool
+                        ? Icons.person_off_outlined
+                        : repeated
+                            ? Icons.replay_rounded
+                            : Icons.arrow_upward_rounded;
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: Icon(icon, color: color),
+                    title: Text(
+                      title,
+                      style: TextStyle(fontWeight: FontWeight.w800, color: color),
+                    ),
+                    subtitle: Text(
+                      graduated
+                          ? '${p.fromSession} → ${p.toSession} · ${p.fromClass} → Graduated'
+                          : leftSchool
+                              ? '${p.fromSession} → ${p.toSession} · left after ${p.fromClass}'
+                              : repeated
+                                  ? '${p.fromSession} → ${p.toSession} · stayed in ${p.fromClass}'
+                                  : '${p.fromSession} → ${p.toSession} · ${p.fromClass} → ${p.toClass}',
+                    ),
+                  ),
+                );
+              }),
+            ],
+
+            if (classHistory.length > 1) ...[
+              const SizedBox(height: 12),
+              const Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  'Class history',
+                  style: TextStyle(fontWeight: FontWeight.w800, fontSize: 16),
+                ),
+              ),
+              const SizedBox(height: 8),
+              ...classHistory.map(
+                (h) => Card(
+                  margin: const EdgeInsets.symmetric(vertical: 4),
+                  child: ListTile(
+                    leading: const Icon(Icons.class_outlined),
+                    title: Text(h.className),
+                    subtitle: Text(h.session),
+                  ),
+                ),
+              ),
+            ],
 
             buildTile(Icons.groups, "Parent / Guardian", student.parentName),
 

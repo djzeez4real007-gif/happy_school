@@ -22,7 +22,11 @@ class ReportCard {
   final int attendancePresent;
   final int attendanceTotal;
 
-  final bool? promoted; // null = N/A (1st/2nd term)
+  /// null = N/A (1st/2nd term)
+  final bool? promoted;
+
+  /// promoted | repeated | graduated | not_promoted | null
+  final String? promotionStatus;
 
   ReportCard({
     required this.admissionNo,
@@ -41,7 +45,27 @@ class ReportCard {
     required this.attendancePresent,
     required this.attendanceTotal,
     this.promoted,
+    this.promotionStatus,
   });
+
+  /// Label for UI / PDF
+  String get promotionLabel {
+    if (term != 'Third Term') return '—';
+    switch (promotionStatus) {
+      case 'promoted':
+        return 'PROMOTED';
+      case 'repeated':
+        return 'REPEATED';
+      case 'graduated':
+        return 'GRADUATED';
+      case 'not_promoted':
+        return 'NOT PROMOTED';
+      default:
+        if (promoted == true) return 'PROMOTED';
+        if (promoted == false) return 'NOT PROMOTED';
+        return '—';
+    }
+  }
 
   Map<String, dynamic> toMap() {
     return {
@@ -61,10 +85,23 @@ class ReportCard {
       "attendancePresent": attendancePresent,
       "attendanceTotal": attendanceTotal,
       "promoted": promoted,
+      "promotionStatus": promotionStatus,
     };
   }
 
   factory ReportCard.fromMap(Map<String, dynamic> map) {
+    final status = map["promotionStatus"]?.toString();
+    bool? promoted;
+    if (map["promoted"] == null) {
+      promoted = null;
+    } else {
+      promoted = map["promoted"] == true || map["promoted"] == "true";
+    }
+    // Infer status from old bool if needed
+    String? resolved = (status != null && status.isNotEmpty) ? status : null;
+    if (resolved == null && promoted == true) resolved = 'promoted';
+    if (resolved == null && promoted == false) resolved = 'not_promoted';
+
     return ReportCard(
       admissionNo: map["admissionNo"] ?? "",
       studentName: map["studentName"] ?? "",
@@ -83,7 +120,8 @@ class ReportCard {
       principalRemark: map["principalRemark"] ?? "",
       attendancePresent: map["attendancePresent"] ?? 0,
       attendanceTotal: map["attendanceTotal"] ?? 0,
-      promoted: map["promoted"] == null ? null : (map["promoted"] == true || map["promoted"] == "true"),
+      promoted: promoted,
+      promotionStatus: resolved,
     );
   }
 }

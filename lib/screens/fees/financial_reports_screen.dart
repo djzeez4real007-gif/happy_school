@@ -1,11 +1,11 @@
-// lib/screens/fees/financial_reports_screen.dart
-
 import 'package:flutter/material.dart';
 
 import '../../core/utils/sessions.dart';
-
 import '../../models/student_fee_payment.dart';
+import '../../services/school_fee_storage.dart';
+import '../../services/student_class_storage.dart';
 import '../../services/student_fee_payment_storage.dart';
+import '../../services/student_storage.dart';
 
 class FinancialReportsScreen extends StatefulWidget {
   const FinancialReportsScreen({super.key});
@@ -16,12 +16,18 @@ class FinancialReportsScreen extends StatefulWidget {
 
 class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
   List<StudentFeePayment> payments = [];
-
   bool loading = true;
 
-  String selectedSession = "All";
-  String selectedTerm = "All";
-  String selectedClass = "All";
+  String selectedSession = Sessions.current();
+  String selectedTerm = 'First Term';
+  String selectedClass = 'All';
+
+  // Enrollment-based totals (correct maths)
+  double expectedFees = 0;
+  double collectedAmount = 0;
+  double outstandingAmount = 0;
+  int debtorCount = 0;
+  int studentCountWithFee = 0;
 
   @override
   void initState() {
@@ -29,589 +35,455 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     loadReports();
   }
 
-  // =========================================================
-  // LOAD ALL PAYMENT RECORDS
-  // =========================================================
-
   Future<void> loadReports() async {
-    setState(() {
-      loading = true;
-    });
+    setState(() => loading = true);
 
     try {
       final data = await StudentFeePaymentStorage.getPayments();
-
+      payments = data;
+      await _recalculateTotals();
       if (!mounted) return;
-
-      setState(() {
-        payments = data.cast<StudentFeePayment>();
-        loading = false;
-      });
+      setState(() => loading = false);
     } catch (e) {
       if (!mounted) return;
-
-      setState(() {
-        loading = false;
-      });
-
+      setState(() => loading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text("Unable to load financial records: $e"),
+          content: Text('Unable to load financial records: $e'),
           backgroundColor: Colors.red,
         ),
       );
     }
   }
 
-  // =========================================================
-  // FILTERED PAYMENTS
-  // =========================================================
+  /// Correct formula:
+  /// For each assigned student with a fee for session+term (+ optional class filter):
+  ///   expected += fee
+  ///   paid = sum of payments for that student/session/term
+  ///   outstanding += max(0, fee - paid)
+  ///   collected += min(paid, fee)  (or just sum of payments — same for totals)
+  Future<void> _recalculateTotals() async {
+    final students = await StudentStorage.getStudents();
+    final assignments = await StudentClassStorage.getStudents();
+
+    double expected = 0;
+    double collected = 0;
+    double outstanding = 0;
+    int debtors = 0;
+    int withFee = 0;
+
+    for (final student in students) {
+      try {
+        final sc = assignments.firstWhere(
+          (e) => e.admissionNo == student.admissionNo,
+        );
+
+        if (selectedClass != 'All' && sc.className != selectedClass) {
+          continue;
+        }
+
+        final fee = await SchoolFeeStorage.getFee(
+          sc.className,
+          selectedSession,
+          selectedTerm,
+        );
+        if (fee == null) continue;
+
+        withFee++;
+        expected += fee.totalFee;
+
+        final paid = await StudentFeePaymentStorage.totalPaidForTerm(
+          student.admissionNo,
+          session: selectedSession,
+          term: selectedTerm,
+        );
+
+        collected += paid;
+        final bal = fee.totalFee - paid;
+        if (bal > 0.01) {
+          debtors++;
+          outstanding += bal;
+        }
+      } catch (_) {
+        // not assigned
+      }
+    }
+
+    expectedFees = expected;
+    collectedAmount = collected;
+    outstandingAmount = outstanding;
+    debtorCount = debtors;
+    studentCountWithFee = withFee;
+  }
 
   List<StudentFeePayment> get filteredPayments {
     return payments.where((payment) {
-      final sessionMatches =
-          selectedSession == "All" || payment.session == selectedSession;
-
-      final termMatches = selectedTerm == "All" || payment.term == selectedTerm;
-
+      final sessionMatches = payment.session == selectedSession;
+      final termMatches = payment.term == selectedTerm;
       final classMatches =
-          selectedClass == "All" || payment.className == selectedClass;
-
+          selectedClass == 'All' || payment.className == selectedClass;
       return sessionMatches && termMatches && classMatches;
-    }).toList();
+    }).toList()
+      ..sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
   }
 
-  // =========================================================
-  // TOTAL SCHOOL FEES
-  // =========================================================
+  int get totalTransactions => filteredPayments.length;
 
-  /// Expected school fees for filtered set:
-  /// unique students × their class fee (from payment snapshot), not sum of every receipt.
-  double get totalSchoolFees {
-    final byStudent = <String, double>{};
-    for (final payment in filteredPayments) {
-      // Keep the max totalSchoolFee seen for that student (one fee structure)
-      final prev = byStudent[payment.admissionNo] ?? 0;
-      if (payment.totalSchoolFee > prev) {
-        byStudent[payment.admissionNo] = payment.totalSchoolFee;
-      }
-    }
-    return byStudent.values.fold<double>(0, (a, b) => a + b);
-  }
-
-  // =========================================================
-  // TOTAL AMOUNT COLLECTED
-  // =========================================================
-
-  double get totalCollected {
-    double total = 0;
-
-    for (final payment in filteredPayments) {
-      total += payment.amountPaid;
-    }
-
-    return total;
-  }
-
-  // =========================================================
-  // TOTAL OUTSTANDING BALANCE
-  // =========================================================
-
-  double get totalBalance {
-    double total = 0;
-
-    for (final payment in filteredPayments) {
-      total += payment.balance;
-    }
-
-    return total;
-  }
-
-  // =========================================================
-  // TOTAL TRANSACTIONS
-  // =========================================================
-
-  int get totalTransactions {
-    return filteredPayments.length;
-  }
-
-  // =========================================================
-  // MONEY FORMAT
-  // =========================================================
-
-  String money(double amount) {
-    return "₦${amount.toStringAsFixed(2)}";
-  }
-
-  // =========================================================
-  // AVAILABLE SESSIONS
-  // =========================================================
+  String money(double amount) => '₦${amount.toStringAsFixed(2)}';
 
   List<String> get sessions {
     final values = {
       ...Sessions.list(),
-      ...payments
-          .map((payment) => payment.session)
-          .where((value) => value.isNotEmpty),
-    }.toList();
-
-    values.sort();
-
-    return ["All", ...values];
+      ...payments.map((p) => p.session).where((v) => v.isNotEmpty),
+    }.toList()
+      ..sort();
+    return values;
   }
 
-  // =========================================================
-  // AVAILABLE TERMS
-  // =========================================================
+  List<String> get terms => List<String>.from(Sessions.terms);
 
-  List<String> get terms {
+  List<String> get classOptions {
     final values = payments
-        .map((payment) => payment.term)
-        .where((value) => value.isNotEmpty)
+        .map((p) => p.className)
+        .where((v) => v.isNotEmpty)
         .toSet()
-        .toList();
-
-    return ["All", ...values];
+        .toList()
+      ..sort();
+    return ['All', ...values];
   }
 
-  // =========================================================
-  // AVAILABLE CLASSES
-  // =========================================================
-
-  List<String> get classes {
-    final values = payments
-        .map((payment) => payment.className)
-        .where((value) => value.isNotEmpty)
-        .toSet()
-        .toList();
-
-    values.sort();
-
-    return ["All", ...values];
+  String _formatDate(String raw) {
+    try {
+      final dt = DateTime.parse(raw);
+      final d = dt.day.toString().padLeft(2, '0');
+      final m = dt.month.toString().padLeft(2, '0');
+      return '$d/$m/${dt.year}';
+    } catch (_) {
+      return raw;
+    }
   }
-
-  // =========================================================
-  // SUMMARY CARD
-  // =========================================================
 
   Widget summaryCard({
-    required String title,
-    required String value,
     required IconData icon,
     required Color color,
-  }) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 26,
-              backgroundColor: color.withValues(alpha: 0.12),
-              child: Icon(icon, color: color, size: 28),
-            ),
-
-            const SizedBox(width: 14),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    title,
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 13),
-                  ),
-
-                  const SizedBox(height: 5),
-
-                  Text(
-                    value,
-                    style: TextStyle(
-                      color: color,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // =========================================================
-  // FILTER DROPDOWN
-  // =========================================================
-
-  Widget filterDropdown({
-    required String label,
+    required String title,
     required String value,
-    required List<String> items,
-    required ValueChanged<String?> onChanged,
   }) {
-    final safeValue = items.contains(value) ? value : "All";
-
-    return Expanded(
-      child: DropdownButtonFormField<String>(
-        initialValue: safeValue,
-        decoration: InputDecoration(
-          labelText: label,
-          border: const OutlineInputBorder(),
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: 12,
-            vertical: 12,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-        ),
-        items: items.map((item) {
-          return DropdownMenuItem<String>(
-            value: item,
-            child: Text(item, overflow: TextOverflow.ellipsis),
-          );
-        }).toList(),
-        onChanged: onChanged,
+        ],
       ),
-    );
-  }
-
-  // =========================================================
-  // PAYMENT DETAIL
-  // =========================================================
-
-  Widget detailItem(String title, String value) {
-    return Expanded(
-      child: Padding(
-        padding: const EdgeInsets.only(right: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
+      child: Row(
+        children: [
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
             ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              value,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // =========================================================
-  // PAYMENT CARD
-  // =========================================================
-
-  Widget paymentCard(StudentFeePayment payment) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      elevation: 1,
-      child: Padding(
-        padding: const EdgeInsets.all(14),
-        child: Column(
-          children: [
-            Row(
+            child: Icon(icon, color: color),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                CircleAvatar(
-                  backgroundColor: Colors.blue.shade100,
-                  child: const Icon(Icons.person, color: Colors.blue),
-                ),
-
-                const SizedBox(width: 12),
-
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        payment.studentName,
-                        style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 16,
-                        ),
-                      ),
-
-                      const SizedBox(height: 3),
-
-                      Text(
-                        payment.admissionNo,
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-
                 Text(
-                  money(payment.amountPaid),
-                  style: const TextStyle(
-                    color: Colors.green,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 15,
+                  title,
+                  style: TextStyle(
+                    color: Colors.grey.shade600,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: TextStyle(
+                    color: color,
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
               ],
             ),
-
-            const Divider(height: 24),
-
-            Row(
-              children: [
-                detailItem("Class", payment.className),
-                detailItem("Session", payment.session),
-                detailItem("Term", payment.term),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Row(
-              children: [
-                detailItem("Total Fee", money(payment.totalSchoolFee)),
-                detailItem("Paid", money(payment.amountPaid)),
-                detailItem("Balance", money(payment.balance)),
-              ],
-            ),
-
-            const SizedBox(height: 12),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Receipt: ${payment.receiptNo}",
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Text(
-                "Payment Method: ${payment.paymentMethod}",
-                style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // =========================================================
-  // CLEAR FILTERS
-  // =========================================================
-
-  void clearFilters() {
-    setState(() {
-      selectedSession = "All";
-      selectedTerm = "All";
-      selectedClass = "All";
-    });
+  Widget paymentCard(StudentFeePayment p) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  p.studentName,
+                  style: const TextStyle(fontWeight: FontWeight.w800),
+                ),
+              ),
+              Text(
+                money(p.amountPaid),
+                style: const TextStyle(
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF059669),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${p.receiptNo} · ${p.className}',
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 12.5),
+          ),
+          Text(
+            '${p.session} · ${p.term} · ${_formatDate(p.paymentDate)}',
+            style: TextStyle(color: Colors.grey.shade500, fontSize: 12),
+          ),
+        ],
+      ),
+    );
   }
 
-  // =========================================================
-  // BUILD
-  // =========================================================
+  Future<void> _onFilterChanged() async {
+    setState(() => loading = true);
+    await _recalculateTotals();
+    if (!mounted) return;
+    setState(() => loading = false);
+  }
 
   @override
   Widget build(BuildContext context) {
     final filtered = filteredPayments;
+    final pct = expectedFees <= 0
+        ? 0.0
+        : ((collectedAmount / expectedFees) * 100).clamp(0.0, 100.0);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-
+      backgroundColor: const Color(0xFFF5F7FB),
       appBar: AppBar(
-        title: const Text(
-          "Financial Reports",
-          style: TextStyle(fontWeight: FontWeight.bold),
-        ),
-
+        title: const Text('Financial Reports'),
         actions: [
           IconButton(
-            tooltip: "Refresh",
+            tooltip: 'Refresh',
             onPressed: loadReports,
             icon: const Icon(Icons.refresh),
           ),
         ],
       ),
-
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: loadReports,
-
               child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-
-                padding: const EdgeInsets.all(16),
-
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 28),
                 children: [
-                  // =================================================
-                  // PAGE HEADER
-                  // =================================================
                   const Text(
-                    "Financial Overview",
-                    style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
+                    'Financial Overview',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
-
-                  const SizedBox(height: 5),
-
+                  const SizedBox(height: 4),
                   Text(
-                    "Monitor school fees, payments and outstanding balances.",
+                    'Expected fees for assigned students · $selectedSession · $selectedTerm',
                     style: TextStyle(color: Colors.grey.shade600),
                   ),
+                  const SizedBox(height: 14),
 
-                  const SizedBox(height: 20),
-
-                  // =================================================
-                  // SUMMARY CARDS
-                  // =================================================
-                  summaryCard(
-                    title: "Total School Fees",
-                    value: money(totalSchoolFees),
-                    icon: Icons.account_balance_wallet,
-                    color: Colors.blue,
-                  ),
-
-                  summaryCard(
-                    title: "Total Collected",
-                    value: money(totalCollected),
-                    icon: Icons.payments,
-                    color: Colors.green,
-                  ),
-
-                  summaryCard(
-                    title: "Outstanding Balance",
-                    value: money(totalBalance),
-                    icon: Icons.warning_amber,
-                    color: Colors.red,
-                  ),
-
-                  summaryCard(
-                    title: "Payment Transactions",
-                    value: totalTransactions.toString(),
-                    icon: Icons.receipt_long,
-                    color: Colors.deepPurple,
-                  ),
-
-                  const SizedBox(height: 10),
-
-                  // =================================================
-                  // FILTERS
-                  // =================================================
-                  Card(
-                    elevation: 1,
-
-                    child: Padding(
-                      padding: const EdgeInsets.all(14),
-
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-
-                        children: [
-                          const Text(
-                            "REPORT FILTERS",
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                  // Filters
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Text(
+                          'REPORT FILTERS',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 12,
+                            letterSpacing: 0.8,
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
+                                value: sessions.contains(selectedSession)
+                                    ? selectedSession
+                                    : sessions.first,
+                                decoration:
+                                    const InputDecoration(labelText: 'Session'),
+                                items: sessions
+                                    .map((s) => DropdownMenuItem(
+                                          value: s,
+                                          child: Text(s),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) async {
+                                  if (v == null) return;
+                                  selectedSession = v;
+                                  await _onFilterChanged();
+                                },
+                              ),
                             ),
-                          ),
-
-                          const SizedBox(height: 15),
-
-                          Row(
-                            children: [
-                              filterDropdown(
-                                label: "Session",
-                                value: selectedSession,
-                                items: sessions,
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedSession = value ?? "All";
-                                  });
-                                },
-                              ),
-
-                              const SizedBox(width: 10),
-
-                              filterDropdown(
-                                label: "Term",
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: DropdownButtonFormField<String>(
                                 value: selectedTerm,
-                                items: terms,
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedTerm = value ?? "All";
-                                  });
+                                decoration:
+                                    const InputDecoration(labelText: 'Term'),
+                                items: terms
+                                    .map((s) => DropdownMenuItem(
+                                          value: s,
+                                          child: Text(s),
+                                        ))
+                                    .toList(),
+                                onChanged: (v) async {
+                                  if (v == null) return;
+                                  selectedTerm = v;
+                                  await _onFilterChanged();
                                 },
                               ),
-                            ],
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 10),
+                        DropdownButtonFormField<String>(
+                          value: classOptions.contains(selectedClass)
+                              ? selectedClass
+                              : 'All',
+                          decoration:
+                              const InputDecoration(labelText: 'Class'),
+                          items: classOptions
+                              .map((s) => DropdownMenuItem(
+                                    value: s,
+                                    child: Text(s),
+                                  ))
+                              .toList(),
+                          onChanged: (v) async {
+                            if (v == null) return;
+                            selectedClass = v;
+                            await _onFilterChanged();
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  const SizedBox(height: 16),
+
+                  summaryCard(
+                    icon: Icons.account_balance_wallet_rounded,
+                    color: const Color(0xFF2563EB),
+                    title: 'Total School Fees (expected)',
+                    value: money(expectedFees),
+                  ),
+                  summaryCard(
+                    icon: Icons.payments_rounded,
+                    color: const Color(0xFF059669),
+                    title: 'Total Collected',
+                    value: money(collectedAmount),
+                  ),
+                  summaryCard(
+                    icon: Icons.warning_amber_rounded,
+                    color: const Color(0xFFDC2626),
+                    title: 'Outstanding Balance',
+                    value: money(outstandingAmount),
+                  ),
+                  summaryCard(
+                    icon: Icons.receipt_long_rounded,
+                    color: const Color(0xFF7C3AED),
+                    title: 'Payment Transactions',
+                    value: '$totalTransactions',
+                  ),
+                  summaryCard(
+                    icon: Icons.groups_rounded,
+                    color: const Color(0xFFEA580C),
+                    title: 'Students with fee / Debtors',
+                    value: '$studentCountWithFee / $debtorCount',
+                  ),
+
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(14),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Collection progress · ${pct.toStringAsFixed(1)}%',
+                          style: const TextStyle(fontWeight: FontWeight.w800),
+                        ),
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: LinearProgressIndicator(
+                            value: pct / 100,
+                            minHeight: 10,
+                            backgroundColor: const Color(0xFFE2E8F0),
+                            color: const Color(0xFF059669),
                           ),
-
-                          const SizedBox(height: 12),
-
-                          Row(
-                            children: [
-                              filterDropdown(
-                                label: "Class",
-                                value: selectedClass,
-                                items: classes,
-                                onChanged: (value) {
-                                  setState(() {
-                                    selectedClass = value ?? "All";
-                                  });
-                                },
-                              ),
-
-                              const SizedBox(width: 10),
-
-                              Expanded(
-                                child: OutlinedButton.icon(
-                                  onPressed: clearFilters,
-                                  icon: const Icon(Icons.clear),
-                                  label: const Text("Clear Filters"),
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(
-                                      vertical: 15,
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Expected = assigned students × class fee for this session/term.\n'
+                          'Outstanding = expected − collected (includes unpaid students).',
+                          style: TextStyle(
+                            fontSize: 11.5,
+                            color: Colors.grey.shade600,
                           ),
-                        ],
-                      ),
+                        ),
+                      ],
                     ),
                   ),
 
                   const SizedBox(height: 20),
-
-                  // =================================================
-                  // PAYMENT RECORDS HEADER
-                  // =================================================
                   Row(
                     children: [
                       const Expanded(
                         child: Text(
-                          "Payment Records",
+                          'Payment Records',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
                           ),
                         ),
                       ),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
@@ -622,7 +494,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                           borderRadius: BorderRadius.circular(20),
                         ),
                         child: Text(
-                          "${filtered.length} record${filtered.length == 1 ? '' : 's'}",
+                          '${filtered.length} record${filtered.length == 1 ? '' : 's'}',
                           style: const TextStyle(
                             color: Colors.blue,
                             fontWeight: FontWeight.bold,
@@ -632,17 +504,11 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                       ),
                     ],
                   ),
-
                   const SizedBox(height: 12),
-
-                  // =================================================
-                  // RECORDS
-                  // =================================================
                   if (filtered.isEmpty)
                     Card(
                       child: Padding(
                         padding: const EdgeInsets.all(35),
-
                         child: Column(
                           children: [
                             Icon(
@@ -650,15 +516,10 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                               size: 60,
                               color: Colors.grey.shade400,
                             ),
-
                             const SizedBox(height: 12),
-
                             Text(
-                              "No payment records found.",
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 16,
-                              ),
+                              'No payment records for this filter.',
+                              style: TextStyle(color: Colors.grey.shade600),
                             ),
                           ],
                         ),

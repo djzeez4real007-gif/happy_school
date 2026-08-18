@@ -729,7 +729,7 @@ class ReportCardScreen extends StatelessWidget {
                       const SizedBox(height: 3),
 
                       Text(
-                        reportCard.promoted == null ? '—' : (reportCard.promoted == true ? 'PROMOTED' : 'NOT PROMOTED'),
+                        reportCard.promotionLabel,
                         style: TextStyle(
                           color: (reportCard.promoted == true)
                               ? Colors.green.shade700

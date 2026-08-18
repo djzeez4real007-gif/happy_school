@@ -12,6 +12,7 @@ import '../../services/auth_service.dart';
 import '../../services/result_storage.dart';
 import '../../services/audit_log_storage.dart';
 import '../../services/student_class_storage.dart';
+import '../../services/student_status_service.dart';
 import '../../services/student_storage.dart';
 import '../../services/subject_storage.dart';
 import '../../services/class_subject_storage.dart';
@@ -287,6 +288,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
 
       final assignedStudents = allAssignments.where((a) {
         if (a.session.trim() != selectedSession) return false;
+        if (StudentStatusService.isInactiveClassName(a.className)) return false;
 
         final aClass = a.className.trim().toLowerCase();
         final aNorm = norm(a.className);

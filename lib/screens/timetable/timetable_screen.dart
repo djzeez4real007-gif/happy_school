@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../services/audit_log_storage.dart';
+import '../../core/permissions.dart';
+import '../../services/auth_service.dart';
 import '../../core/theme/app_colors.dart';
 
 import '../../models/timetable.dart';
@@ -15,6 +17,9 @@ class TimetableScreen extends StatefulWidget {
 }
 
 class _TimetableScreenState extends State<TimetableScreen> {
+  bool get canEdit =>
+      Permissions.canConfigureTimetable(AuthService.currentRole);
+
   List<Timetable> timetables = [];
 
   bool loading = true;
@@ -216,39 +221,40 @@ class _TimetableScreenState extends State<TimetableScreen> {
                   ),
                 ),
 
-                PopupMenuButton<String>(
-                  onSelected: (value) async {
-                    if (value == "edit") {
-                      await editTimetable(timetable, originalIndex);
-                    }
+                if (canEdit)
+                  PopupMenuButton<String>(
+                    onSelected: (value) async {
+                      if (value == "edit") {
+                        await editTimetable(timetable, originalIndex);
+                      }
 
-                    if (value == "delete") {
-                      await deleteTimetable(timetable, originalIndex);
-                    }
-                  },
-                  itemBuilder: (_) => const [
-                    PopupMenuItem<String>(
-                      value: "edit",
-                      child: Row(
-                        children: [
-                          Icon(Icons.edit, color: Colors.blue),
-                          SizedBox(width: 8),
-                          Text("Edit"),
-                        ],
+                      if (value == "delete") {
+                        await deleteTimetable(timetable, originalIndex);
+                      }
+                    },
+                    itemBuilder: (_) => const [
+                      PopupMenuItem<String>(
+                        value: "edit",
+                        child: Row(
+                          children: [
+                            Icon(Icons.edit, color: Colors.blue),
+                            SizedBox(width: 8),
+                            Text("Edit"),
+                          ],
+                        ),
                       ),
-                    ),
-                    PopupMenuItem<String>(
-                      value: "delete",
-                      child: Row(
-                        children: [
-                          Icon(Icons.delete, color: Colors.red),
-                          SizedBox(width: 8),
-                          Text("Delete"),
-                        ],
+                      PopupMenuItem<String>(
+                        value: "delete",
+                        child: Row(
+                          children: [
+                            Icon(Icons.delete, color: Colors.red),
+                            SizedBox(width: 8),
+                            Text("Delete"),
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
               ],
             ),
 
@@ -377,9 +383,9 @@ class _TimetableScreenState extends State<TimetableScreen> {
         elevation: 0,
         backgroundColor: const Color(0xFF1D4ED8),
         foregroundColor: Colors.white,
-        title: const Text(
-          "Timetable",
-          style: TextStyle(fontWeight: FontWeight.w700),
+        title: Text(
+          canEdit ? "Timetable" : "View Timetable",
+          style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
           IconButton(
@@ -390,11 +396,13 @@ class _TimetableScreenState extends State<TimetableScreen> {
         ],
       ),
 
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: addTimetable,
-        icon: const Icon(Icons.add),
-        label: const Text("Add"),
-      ),
+      floatingActionButton: canEdit
+          ? FloatingActionButton.extended(
+              onPressed: addTimetable,
+              icon: const Icon(Icons.add),
+              label: const Text("Add"),
+            )
+          : null,
 
       body: Column(
         children: [

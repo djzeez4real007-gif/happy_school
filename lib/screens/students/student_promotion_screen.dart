@@ -561,6 +561,12 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
             newClassName: targetClassName,
             newSession: nextSession,
           );
+          await StudentPromotionService.recordPromotion(
+            currentAssignment: student,
+            newClassName: targetClassName,
+            newSession: nextSession,
+            average: getAverage(student),
+          );
           count++;
         } catch (_) {}
       }
@@ -622,7 +628,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
             '${selectedAdmissions.length} student'
             '${selectedAdmissions.length == 1 ? '' : 's'} '
             'from ${selectedPath.sourceClass} to $target '
-            'for $nextSession.\n\n'
+            'for ${_computeNextSession(currentSession)}.\n\n'
             'The previous session records will be kept.',
           ),
           actions: [
@@ -651,6 +657,116 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
   // ============================================================
   // MESSAGE
   // ============================================================
+
+
+  // ============================================================
+  // REPEAT SELECTED STUDENTS (same class → next session)
+  // ============================================================
+
+  Future<void> repeatSelectedStudents() async {
+    if (selectedAdmissions.isEmpty) {
+      _showMessage('Please select at least one student to repeat.', Colors.orange.shade800);
+      return;
+    }
+
+    if (automaticMode) {
+      _showMessage(
+        'Switch to Manual mode to mark students as repeating the class.',
+        Colors.orange.shade800,
+      );
+      return;
+    }
+
+    final nextSession = _computeNextSession(currentSession);
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Confirm repeat'),
+        content: Text(
+          'Mark ${selectedAdmissions.length} student(s) as REPEATING '
+          '${selectedPath.sourceClass} for session $currentSession → $nextSession?\n\n'
+          'They will stay in the same class in the next session.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706)),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Repeat class'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed != true) return;
+
+    setState(() => promoting = true);
+
+    try {
+      // Snapshot selection first (do not rely on set after awaits)
+      final selected = Set<String>.from(selectedAdmissions);
+      final source = normalizeClassName(selectedPath.sourceClass);
+
+      // Match like the list filter: "JSS1" matches "JSS1 A"
+      final toRepeat = allSessionStudents.where((student) {
+        if (!selected.contains(student.admissionNo)) return false;
+        final studentClass = normalizeClassName(student.className);
+        return studentClass == source || studentClass.startsWith(source);
+      }).toList();
+
+      if (toRepeat.isEmpty) {
+        // Fallback: repeat by admission only (still in current session list)
+        final fallback = allSessionStudents
+            .where((s) => selected.contains(s.admissionNo))
+            .toList();
+        toRepeat.addAll(fallback);
+      }
+
+      // Deduplicate by admission no
+      final unique = <String, dynamic>{};
+      for (final s in toRepeat) {
+        unique[s.admissionNo] = s;
+      }
+      final list = unique.values.toList();
+
+      int count = 0;
+      final names = <String>[];
+      for (final student in list) {
+        final avg = getAverage(student);
+        await StudentPromotionService.repeatStudent(
+          currentAssignment: student,
+          newSession: nextSession,
+          average: avg,
+        );
+        count++;
+        names.add(student.studentName);
+      }
+
+      selectedAdmissions.clear();
+      await loadData();
+
+      if (!mounted) return;
+      setState(() => promoting = false);
+      if (count == 0) {
+        _showMessage(
+          'No matching students to repeat. Select students in the list first.',
+          Colors.red.shade700,
+        );
+      } else {
+        _showMessage(
+          '$count student${count == 1 ? '' : 's'} repeated into $nextSession '
+          '(same class): ${names.take(3).join(', ')}'
+          '${names.length > 3 ? '…' : ''}',
+          const Color(0xFFD97706),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => promoting = false);
+      _showMessage('Repeat failed: $e', Colors.red.shade700);
+    }
+  }
 
   void _showMessage(String message, Color color) {
     if (!mounted) return;
@@ -1416,7 +1532,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                   : const Icon(Icons.arrow_upward),
               label: Text(
                 promoting
-                    ? 'PROMOTING...'
+                    ? 'PROCESSING...'
                     : selectedPath.graduated
                     ? 'GRADUATE SELECTED STUDENTS'
                     : automaticMode
@@ -1437,10 +1553,36 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
             ),
           ),
 
+          // Repeat is only for manual mode (not graduation path)
+          if (!automaticMode && !selectedPath.graduated) ...[
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: OutlinedButton.icon(
+                onPressed: promoting || selectedAdmissions.isEmpty
+                    ? null
+                    : repeatSelectedStudents,
+                icon: const Icon(Icons.replay_rounded),
+                label: const Text(
+                  'REPEAT CLASS (SAME CLASS NEXT SESSION)',
+                  style: TextStyle(fontWeight: FontWeight.w800),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: const Color(0xFFD97706),
+                  side: const BorderSide(color: Color(0xFFD97706), width: 1.4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+              ),
+            ),
+          ],
+
           const SizedBox(height: 7),
 
           Text(
-            '${selectedAdmissions.length} selected',
+            '${selectedAdmissions.length} selected · Promote moves up · Repeat keeps same class',
             style: TextStyle(color: Colors.grey.shade600, fontSize: 11),
           ),
         ],

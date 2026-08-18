@@ -128,7 +128,7 @@ class ReportCardPdfService {
                 ),
                 pw.Text(
                   'Promotion: '
-                  '${reportCard.promoted == null ? "—" : (reportCard.promoted! ? "PROMOTED" : "NOT PROMOTED")}',
+                  '${reportCard.promotionLabel}',
                 ),
               ],
             ),

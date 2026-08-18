@@ -17,6 +17,7 @@ class ReportCardGenerator {
     required String classTeacherRemark,
     required String principalRemark,
     bool? promoted,
+    String? promotionStatus,
   }) async {
     final List<ReportCardSubject> subjects = [];
 
@@ -86,6 +87,7 @@ class ReportCardGenerator {
       attendancePresent: attendancePresent,
       attendanceTotal: attendanceTotal,
       promoted: promoted,
+      promotionStatus: promotionStatus,
     );
 
     await ReportCardStorage.addReportCard(reportCard);

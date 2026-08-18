@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import '../../core/utils/sessions.dart';
 import '../../core/theme/app_colors.dart';
 
 import '../../models/report_card.dart';
@@ -14,6 +16,7 @@ import '../../services/student_storage.dart';
 import '../../services/report_card_generator.dart';
 import '../../services/student_class_storage.dart';
 import '../../services/attendance_storage.dart';
+import '../../services/student_promotion_storage.dart';
 
 import 'report_card_screen.dart';
 
@@ -41,13 +44,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
   bool bulkMode = false;
   final Set<String> selectedAdmissionNos = {};
 
-  final List<String> sessions = const [
-    '2024/2025',
-    '2025/2026',
-    '2026/2027',
-    '2027/2028',
-    '2028/2029',
-  ];
+  final List<String> sessions = Sessions.list();
 
   final List<String> terms = const [
     'First Term',
@@ -184,6 +181,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
         : results.fold<double>(0, (s, r) => s + r.total) / results.length;
 
     bool? promoted;
+    String? promotionStatus;
     if (selectedTerm == 'Third Term') {
       final history =
           await StudentClassStorage.getStudentHistory(student.admissionNo);
@@ -197,25 +195,62 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
         }
       } catch (_) {}
 
-      final promotedRecord = history.where((h) {
-        return h.session.trim() == nextSession &&
-            h.className.trim().toLowerCase() != 'graduated' &&
-            h.className.trim().toLowerCase() != 'retained';
-      }).toList();
-      final graduatedRecord = history.where((h) {
-        return h.session.trim() == nextSession &&
-            h.className.trim().toLowerCase() == 'graduated';
-      }).toList();
-      final retainedRecord = history.where((h) {
-        return h.session.trim() == nextSession &&
-            h.className.trim().toLowerCase() == 'retained';
+      String norm(String v) =>
+          v.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+
+      final currentClassNorm = norm(selectedClass!.fullClassName);
+
+      // Explicit repeat/promote records from Promotion module
+      final promoRecords = await StudentPromotionStorage.getPromotions();
+      final myPromo = promoRecords.where((p) {
+        return p.admissionNo.trim().toLowerCase() ==
+                student.admissionNo.trim().toLowerCase() &&
+            p.fromSession.trim() == selectedSession.trim();
       }).toList();
 
-      // Must have a promotion decision (promoted, graduated, or retained)
-      if (graduatedRecord.isNotEmpty || promotedRecord.isNotEmpty) {
+      final wasRepeated = myPromo.any((p) => p.outcome == 'repeated');
+      final wasPromoted = myPromo.any((p) => p.outcome == 'promoted');
+
+      final nextAssignments = history.where((h) {
+        return h.session.trim() == nextSession;
+      }).toList();
+
+      final graduatedRecord = nextAssignments
+          .where((h) => h.className.trim().toLowerCase() == 'graduated')
+          .toList();
+      final retainedRecord = nextAssignments
+          .where((h) => h.className.trim().toLowerCase() == 'retained')
+          .toList();
+
+      if (wasRepeated) {
+        promoted = false;
+        promotionStatus = 'repeated';
+      } else if (graduatedRecord.isNotEmpty) {
         promoted = true;
+        promotionStatus = 'graduated';
+      } else if (wasPromoted) {
+        promoted = true;
+        promotionStatus = 'promoted';
+      } else if (nextAssignments.isNotEmpty) {
+        // Infer from next-session class vs current class
+        final nextClass = nextAssignments.last.className;
+        final nextNorm = norm(nextClass);
+        if (nextClass.trim().toLowerCase() == 'graduated') {
+          promoted = true;
+          promotionStatus = 'graduated';
+        } else if (nextNorm == currentClassNorm ||
+            nextNorm.startsWith(currentClassNorm) ||
+            currentClassNorm.startsWith(nextNorm)) {
+          // Same class next session → repeated
+          promoted = false;
+          promotionStatus = 'repeated';
+        } else {
+          promoted = true;
+          promotionStatus = 'promoted';
+        }
       } else if (retainedRecord.isNotEmpty) {
         promoted = false;
+        promotionStatus = 'not_promoted';
       } else {
         // Not decided yet — do not generate third term card
         return null;
@@ -238,6 +273,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
           ? "Satisfactory progress."
           : "Parent attention required.",
       promoted: promoted,
+      promotionStatus: promotionStatus,
     );
   }
 

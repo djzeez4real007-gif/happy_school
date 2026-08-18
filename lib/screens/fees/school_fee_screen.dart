@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../core/utils/sessions.dart';
 import '../../core/widgets/premium_feedback.dart';
 import '../../core/widgets/premium_form.dart';
 import '../../models/school_class.dart';
@@ -27,8 +28,15 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
 
   List<SchoolClass> classes = [];
   List<SchoolFee> fees = [];
-  SchoolClass? selectedClass;
+  String? selectedClassName;
+  String selectedSession = Sessions.current();
+  String selectedTerm = 'First Term';
+  bool applyToAllTerms = false;
   bool saving = false;
+  bool loadingFee = false;
+
+  final sessions = Sessions.list();
+  final terms = Sessions.terms;
 
   @override
   void initState() {
@@ -37,55 +45,119 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
   }
 
   Future<void> loadData() async {
-    classes = await ClassStorage.getClasses();
+    final raw = await ClassStorage.getClasses();
+    // Deduplicate by class display name (avoids dropdown assertion crash)
+    final seen = <String>{};
+    classes = [];
+    for (final c in raw) {
+      final key = c.fullClassName.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      classes.add(c);
+    }
+    classes.sort(
+      (a, b) => a.fullClassName.toLowerCase().compareTo(
+            b.fullClassName.toLowerCase(),
+          ),
+    );
     fees = await SchoolFeeStorage.getFees();
+    // Drop invalid selection if class list changed
+    if (selectedClassName != null &&
+        !classes.any((c) => c.fullClassName == selectedClassName)) {
+      selectedClassName = null;
+    }
     if (mounted) setState(() {});
+    await loadExistingFeeIntoForm();
   }
+
+  void clearAmounts() {
+    tuitionController.clear();
+    examController.clear();
+    sportController.clear();
+    ictController.clear();
+    ptaController.clear();
+    developmentController.clear();
+    otherController.clear();
+  }
+
+  Future<void> loadExistingFeeIntoForm() async {
+    if (selectedClassName == null) {
+      clearAmounts();
+      if (mounted) setState(() {});
+      return;
+    }
+
+    setState(() => loadingFee = true);
+    final existing = await SchoolFeeStorage.getFee(
+      selectedClassName!,
+      selectedSession,
+      selectedTerm,
+    );
+
+    if (existing != null) {
+      tuitionController.text = _num(existing.tuitionFee);
+      examController.text = _num(existing.examinationFee);
+      sportController.text = _num(existing.sportFee);
+      ictController.text = _num(existing.ictFee);
+      ptaController.text = _num(existing.ptaFee);
+      developmentController.text = _num(existing.developmentLevy);
+      otherController.text = _num(existing.otherCharges);
+    } else {
+      clearAmounts();
+    }
+
+    if (mounted) setState(() => loadingFee = false);
+  }
+
+  String _num(double v) => v == 0 ? '' : v.toStringAsFixed(0);
 
   double value(TextEditingController c) =>
       double.tryParse(c.text.trim()) ?? 0;
 
   Future<void> saveFee() async {
-    if (selectedClass == null) {
+    if (selectedClassName == null) {
       PremiumFeedback.info(context, title: 'Select a class first');
       return;
     }
     setState(() => saving = true);
     try {
-      await SchoolFeeStorage.saveFee(
-        SchoolFee(
-          className: selectedClass!.fullClassName,
-          tuitionFee: value(tuitionController),
-          examinationFee: value(examController),
-          sportFee: value(sportController),
-          ictFee: value(ictController),
-          ptaFee: value(ptaController),
-          developmentLevy: value(developmentController),
-          otherCharges: value(otherController),
-          session: '2026/2027',
-          term: 'First Term',
-        ),
+      final fee = SchoolFee(
+        className: selectedClassName!,
+        tuitionFee: value(tuitionController),
+        examinationFee: value(examController),
+        sportFee: value(sportController),
+        ictFee: value(ictController),
+        ptaFee: value(ptaController),
+        developmentLevy: value(developmentController),
+        otherCharges: value(otherController),
+        session: selectedSession,
+        term: selectedTerm,
       );
-      tuitionController.clear();
-      examController.clear();
-      sportController.clear();
-      ictController.clear();
-      ptaController.clear();
-      developmentController.clear();
-      otherController.clear();
-      selectedClass = null;
-      await loadData();
-      if (!mounted) return;
-      setState(() => saving = false);
+
+      if (applyToAllTerms) {
+        await SchoolFeeStorage.saveFeeForAllTerms(fee);
+      } else {
+        await SchoolFeeStorage.saveFee(fee);
+      }
+
       await AuditLogStorage.log(
         action: 'fee_settings_saved',
         module: 'fees',
-        description: 'Updated school fee settings',
+        description: applyToAllTerms
+            ? 'Saved fees for ${fee.className} · $selectedSession (all terms)'
+            : 'Saved fees for ${fee.className} · $selectedSession · $selectedTerm',
+        refId: fee.className,
       );
+
+      await loadData();
+      if (!mounted) return;
+      setState(() => saving = false);
       PremiumFeedback.success(
         context,
-        title: 'School fee saved successfully',
-        subtitle: 'Fee structure updated',
+        title: 'School fee saved',
+        subtitle: applyToAllTerms
+            ? '${fee.className} · all terms · ₦${fee.totalFee.toStringAsFixed(0)}'
+            : '${fee.className} · $selectedTerm · ₦${fee.totalFee.toStringAsFixed(0)}',
         icon: Icons.payments_rounded,
       );
     } catch (e) {
@@ -93,20 +165,6 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
       setState(() => saving = false);
       PremiumFeedback.error(context, title: 'Save failed', subtitle: '$e');
     }
-  }
-
-  Widget feeField(String title, TextEditingController controller) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: controller,
-        keyboardType: TextInputType.number,
-        decoration: InputDecoration(
-          labelText: title,
-          prefixIcon: const Icon(Icons.payments_outlined),
-        ),
-      ),
-    );
   }
 
   @override
@@ -121,8 +179,27 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
     super.dispose();
   }
 
+  Widget feeField(String label, TextEditingController controller) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: TextField(
+        controller: controller,
+        keyboardType: TextInputType.number,
+        decoration: InputDecoration(
+          labelText: label,
+          prefixText: '₦ ',
+          prefixIcon: const Icon(Icons.payments_outlined),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final visibleFees = fees.where((f) {
+      return f.session == selectedSession;
+    }).toList();
+
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
@@ -134,33 +211,95 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
         children: [
           PremiumForm.header(
             context,
-            title: 'Fee Settings',
-            subtitle: 'Set fee amounts per class',
-            icon: Icons.settings_rounded,
+            title: 'School Fee Settings',
+            subtitle: 'Set fees per class, session and term',
+            icon: Icons.account_balance_wallet_rounded,
             gradient: const [Color(0xFF065F46), Color(0xFF10B981)],
           ),
           const SizedBox(height: 16),
           PremiumForm.card(
             context,
             children: [
-              DropdownButtonFormField<SchoolClass>(
-                value: selectedClass,
+              DropdownButtonFormField<String>(
+                value: sessions.contains(selectedSession)
+                    ? selectedSession
+                    : sessions.first,
                 isExpanded: true,
                 decoration: const InputDecoration(
-                  labelText: 'Select Class',
+                  labelText: 'Session',
+                  prefixIcon: Icon(Icons.calendar_month_rounded),
+                ),
+                items: sessions
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (v) async {
+                  if (v == null) return;
+                  selectedSession = v;
+                  await loadExistingFeeIntoForm();
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: selectedTerm,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Term',
+                  prefixIcon: Icon(Icons.event_note_rounded),
+                ),
+                items: terms
+                    .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                    .toList(),
+                onChanged: (v) async {
+                  if (v == null) return;
+                  selectedTerm = v;
+                  await loadExistingFeeIntoForm();
+                },
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: classes.any((c) => c.fullClassName == selectedClassName)
+                    ? selectedClassName
+                    : null,
+                isExpanded: true,
+                decoration: const InputDecoration(
+                  labelText: 'Class',
                   prefixIcon: Icon(Icons.class_rounded),
                 ),
                 items: classes
                     .map(
-                      (e) => DropdownMenuItem(
-                        value: e,
+                      (e) => DropdownMenuItem<String>(
+                        value: e.fullClassName,
                         child: Text(e.fullClassName),
                       ),
                     )
                     .toList(),
-                onChanged: (v) => setState(() => selectedClass = v),
+                onChanged: (v) async {
+                  selectedClassName = v;
+                  await loadExistingFeeIntoForm();
+                },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
+              if (loadingFee)
+                const Padding(
+                  padding: EdgeInsets.symmetric(vertical: 8),
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+              CheckboxListTile(
+                contentPadding: EdgeInsets.zero,
+                value: applyToAllTerms,
+                onChanged: (v) =>
+                    setState(() => applyToAllTerms = v ?? false),
+                title: const Text(
+                  'Apply these amounts to all 3 terms',
+                  style: TextStyle(fontWeight: FontWeight.w600, fontSize: 14),
+                ),
+                subtitle: const Text(
+                  'Useful when fees are the same every term',
+                  style: TextStyle(fontSize: 12),
+                ),
+                controlAffinity: ListTileControlAffinity.leading,
+              ),
+              const SizedBox(height: 8),
               feeField('Tuition Fee', tuitionController),
               feeField('Examination Fee', examController),
               feeField('Sport Fee', sportController),
@@ -170,24 +309,26 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
               feeField('Other Charges', otherController),
               const SizedBox(height: 8),
               PremiumForm.primaryButton(
-                label: 'SAVE SCHOOL FEE',
+                label: applyToAllTerms
+                    ? 'SAVE FOR ALL TERMS'
+                    : 'SAVE SCHOOL FEE',
                 onPressed: saveFee,
                 loading: saving,
                 icon: Icons.save_rounded,
               ),
             ],
           ),
-          if (fees.isNotEmpty) ...[
+          if (visibleFees.isNotEmpty) ...[
             const SizedBox(height: 20),
             Text(
-              'Saved fee structures',
+              'Saved fees · $selectedSession',
               style: TextStyle(
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary(context),
               ),
             ),
             const SizedBox(height: 10),
-            ...fees.map((fee) {
+            ...visibleFees.map((fee) {
               return Container(
                 margin: const EdgeInsets.only(bottom: 10),
                 decoration: BoxDecoration(
@@ -196,7 +337,24 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
                   border: Border.all(color: AppColors.cardBorder(context)),
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.payments_rounded, color: Color(0xFF059669)),
+                  onTap: () async {
+                    selectedClassName = fee.className;
+                    selectedTerm = fee.term;
+                    selectedSession = fee.session;
+                    // Align to registered class name if possible
+                    for (final c in classes) {
+                      if (c.fullClassName.replaceAll(' ', '').toLowerCase() ==
+                          fee.className.replaceAll(' ', '').toLowerCase()) {
+                        selectedClassName = c.fullClassName;
+                        break;
+                      }
+                    }
+                    await loadExistingFeeIntoForm();
+                  },
+                  leading: const Icon(
+                    Icons.payments_rounded,
+                    color: Color(0xFF059669),
+                  ),
                   title: Text(
                     fee.className,
                     style: TextStyle(
@@ -216,6 +374,15 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
               );
             }),
           ],
+          const SizedBox(height: 12),
+          Text(
+            'Note: Promoted students use the fee of their new class '
+            'for the selected session and term.',
+            style: TextStyle(
+              fontSize: 12,
+              color: AppColors.textSecondary(context),
+            ),
+          ),
         ],
       ),
     );

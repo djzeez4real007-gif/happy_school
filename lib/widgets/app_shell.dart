@@ -12,8 +12,10 @@ import '../screens/fees/fees_dashboard_screen.dart';
 import '../screens/promotion/student_promotion_screen.dart';
 import '../screens/report_card/generate_report_card_screen.dart';
 import '../screens/results/broadsheet_screen.dart';
+import '../screens/results/class_term_averages_screen.dart';
 import '../screens/results/result_entry_screen.dart';
 import '../screens/students/student_menu_screen.dart';
+import '../screens/students/alumni_list_screen.dart';
 import '../screens/subjects/subject_list_screen.dart';
 import '../screens/teachers/teacher_list_screen.dart';
 import '../screens/timetable/timetable_screen.dart';
@@ -70,7 +72,13 @@ class _AppShellState extends State<AppShell> {
       page: StudentMenuScreen(),
       section: 'ACADEMICS',
     ),
-    _NavItem(
+        _NavItem(
+      key: Permissions.alumni,
+      icon: Icons.workspace_premium_rounded,
+      label: 'Alumni',
+      page: AlumniListScreen(),
+    ),
+_NavItem(
       key: Permissions.teachers,
       label: 'Teachers',
       icon: Icons.badge_rounded,
@@ -107,7 +115,13 @@ class _AppShellState extends State<AppShell> {
       icon: Icons.table_chart_rounded,
       page: BroadsheetScreen(),
     ),
-    _NavItem(
+        _NavItem(
+      key: Permissions.classAverages,
+      icon: Icons.insights_rounded,
+      label: 'Term Averages',
+      page: ClassTermAveragesScreen(),
+    ),
+_NavItem(
       key: Permissions.reportCards,
       label: 'Report Cards',
       icon: Icons.description_rounded,
@@ -175,10 +189,17 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _select(int index) {
+    if (index < 0) return;
+    // Update page on the same tap (one click)
     setState(() => _selectedIndex = index);
-    if (Scaffold.maybeOf(context)?.isDrawerOpen == true) {
-      Navigator.of(context).pop();
-    }
+    // Close drawer after the frame so the content change is not lost
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      final scaffold = _scaffoldKey.currentState;
+      if (scaffold != null && scaffold.isDrawerOpen) {
+        Navigator.of(context).pop();
+      }
+    });
   }
 
   Future<void> _logout() async {
@@ -428,7 +449,7 @@ class _AppShellState extends State<AppShell> {
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
-                      onTap: () => _select(index),
+                      onTap: () { _select(index); },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,

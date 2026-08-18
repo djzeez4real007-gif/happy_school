@@ -12,7 +12,7 @@ import '../../services/student_class_storage.dart';
 import '../../services/student_fee_payment_storage.dart';
 import '../../services/audit_log_storage.dart';
 import '../../services/student_storage.dart';
-import 'receipt_screen.dart';
+import '../fees/receipt_screen.dart';
 
 class StudentFeePaymentScreen extends StatefulWidget {
   const StudentFeePaymentScreen({super.key});

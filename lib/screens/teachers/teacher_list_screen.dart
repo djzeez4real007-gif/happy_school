@@ -1,7 +1,6 @@
-import '../../services/staff_id_card_pdf_service.dart';
+import 'staff_id_card_preview_screen.dart';
 import 'package:flutter/material.dart';
 
-import '../../services/staff_id_card_pdf_service.dart';
 
 import '../../core/theme/app_colors.dart';
 
@@ -244,9 +243,23 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                                           ],
                                         ),
                                       ),
-                                      Icon(
-                                        Icons.chevron_right_rounded,
-                                        color: Colors.grey.shade400,
+                                      IconButton(
+                                        tooltip: 'Staff ID Card',
+                                        icon: const Icon(
+                                          Icons.badge_outlined,
+                                          color: Color(0xFF0D9488),
+                                        ),
+                                        onPressed: () {
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) =>
+                                                  StaffIdCardPreviewScreen(
+                                                teacher: teacher,
+                                              ),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),

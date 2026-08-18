@@ -6,6 +6,9 @@ import 'student_class_storage.dart';
 import 'student_subject_storage.dart';
 import 'class_subject_storage.dart';
 import 'report_card_storage.dart';
+import 'result_storage.dart';
+import 'student_promotion_storage.dart';
+import '../models/student_promotion.dart';
 
 class StudentPromotionService {
   // ==========================================================
@@ -38,35 +41,41 @@ class StudentPromotionService {
     required String session,
     required String term,
   }) async {
-    final reportCards = await ReportCardStorage.getReportCards();
-
     final targetAdmission = admissionNo.trim().toLowerCase();
-
     final targetSession = session.trim().toLowerCase();
-
     final targetTerm = term.trim().toLowerCase();
 
-    ReportCard? matchingReport;
+    // 1) Prefer live results (result entry) for this session + term.
+    //    This is what teachers enter before report cards are generated.
+    final allResults = await ResultStorage.getResults();
+    final studentResults = allResults.where((r) {
+      return r.admissionNo.trim().toLowerCase() == targetAdmission &&
+          r.session.trim().toLowerCase() == targetSession &&
+          r.term.trim().toLowerCase() == targetTerm;
+    }).toList();
 
+    if (studentResults.isNotEmpty) {
+      double sum = 0;
+      for (final r in studentResults) {
+        sum += r.total; // ca1 + ca2 + exam
+      }
+      return sum / studentResults.length;
+    }
+
+    // 2) Fallback: report card average (if generated).
+    final reportCards = await ReportCardStorage.getReportCards();
     for (final report in reportCards) {
       final sameAdmission =
           report.admissionNo.trim().toLowerCase() == targetAdmission;
-
-      final sameSession = report.session.trim().toLowerCase() == targetSession;
-
+      final sameSession =
+          report.session.trim().toLowerCase() == targetSession;
       final sameTerm = report.term.trim().toLowerCase() == targetTerm;
-
       if (sameAdmission && sameSession && sameTerm) {
-        matchingReport = report;
-        break;
+        return report.average;
       }
     }
 
-    if (matchingReport == null) {
-      return 0.0;
-    }
-
-    return matchingReport.average;
+    return 0.0;
   }
 
   // ==========================================================
@@ -139,6 +148,15 @@ class StudentPromotionService {
 
     await StudentClassStorage.assignStudent(newAssignment);
 
+    final isGraduated = targetClass.trim().toLowerCase() == 'graduated' ||
+        targetClass.trim().toLowerCase() == 'left' ||
+        targetClass.trim().toLowerCase() == 'withdrawn';
+
+    // Graduated students do not get subject assignments for the next session.
+    if (isGraduated) {
+      return;
+    }
+
     // --------------------------------------------------------
     // Only remove subjects belonging to the NEW session.
     //
@@ -173,6 +191,112 @@ class StudentPromotionService {
   // ==========================================================
   // PROMOTE MULTIPLE STUDENTS
   // ==========================================================
+
+
+  // ==========================================================
+  // REPEAT ONE STUDENT (same class, next session)
+  // ==========================================================
+
+
+  // ==========================================================
+  // LEFT SCHOOL (completed a class, did not return next session)
+  // ==========================================================
+
+  static Future<void> markStudentLeft({
+    required StudentClass currentAssignment,
+    required String newSession,
+    double average = 0,
+  }) async {
+    final admissionNo = currentAssignment.admissionNo.trim();
+    final studentName = currentAssignment.studentName;
+    final targetSession = newSession.trim();
+
+    if (admissionNo.isEmpty || targetSession.isEmpty) return;
+
+    // Next session marked as Left — no class, no subjects
+    await promoteStudent(
+      currentAssignment: currentAssignment,
+      newClassName: 'Left',
+      newSession: targetSession,
+    );
+
+    await StudentPromotionStorage.addPromotion(
+      StudentPromotion(
+        admissionNo: admissionNo,
+        studentName: studentName,
+        fromClass: currentAssignment.className,
+        toClass: 'Left',
+        fromSession: currentAssignment.session,
+        toSession: targetSession,
+        average: average,
+        eligible: false,
+        outcome: 'left',
+      ),
+    );
+  }
+
+  static Future<void> repeatStudent({
+    required StudentClass currentAssignment,
+    required String newSession,
+    double average = 0,
+  }) async {
+    final admissionNo = currentAssignment.admissionNo.trim();
+    final studentName = currentAssignment.studentName;
+    final sameClass = currentAssignment.className.trim();
+    final targetSession = newSession.trim();
+
+    if (admissionNo.isEmpty || sameClass.isEmpty || targetSession.isEmpty) {
+      return;
+    }
+
+    // Create / refresh assignment in next session with SAME class
+    await promoteStudent(
+      currentAssignment: currentAssignment,
+      newClassName: sameClass,
+      newSession: targetSession,
+    );
+
+    await StudentPromotionStorage.addPromotion(
+      StudentPromotion(
+        admissionNo: admissionNo,
+        studentName: studentName,
+        fromClass: sameClass,
+        toClass: sameClass,
+        fromSession: currentAssignment.session,
+        toSession: targetSession,
+        average: average,
+        eligible: false,
+        outcome: 'repeated',
+      ),
+    );
+  }
+
+  /// Record a successful promotion in history.
+  static Future<void> recordPromotion({
+    required StudentClass currentAssignment,
+    required String newClassName,
+    required String newSession,
+    double average = 0,
+    String? outcome,
+  }) async {
+    final resolved = outcome ??
+        (newClassName.trim().toLowerCase() == 'graduated'
+            ? 'graduated'
+            : 'promoted');
+    await StudentPromotionStorage.addPromotion(
+      StudentPromotion(
+        admissionNo: currentAssignment.admissionNo.trim(),
+        studentName: currentAssignment.studentName,
+        fromClass: currentAssignment.className,
+        toClass: newClassName,
+        fromSession: currentAssignment.session,
+        toSession: newSession,
+        average: average,
+        eligible: true,
+        outcome: resolved,
+      ),
+    );
+  }
 
   static Future<int> promoteStudents({
     required List<StudentClass> students,

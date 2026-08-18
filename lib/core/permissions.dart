@@ -18,6 +18,8 @@ class Permissions {
   static const String auditLog = 'audit_log';
   static const String parentPortal = 'parent_portal';
   static const String idCards = 'id_cards';
+  static const String classAverages = 'class_averages';
+  static const String alumni = 'alumni';
 
   static bool canAccess(String role, String feature) {
     switch (role) {
@@ -25,40 +27,39 @@ class Permissions {
         return true;
 
       case 'principal':
-        // Principal sees everything except cannot delete admin (enforced in UI)
-        return feature != idCards || true;
+        return true;
 
       case 'class_teacher':
-        // Only: enter results, broadsheet, attendance, timetable (+ dashboard)
+        // Results, broadsheet, attendance, view timetable, term averages
         return {
           dashboard,
           resultEntry,
           broadsheet,
           attendance,
+          timetable,
+          classAverages,
         }.contains(feature);
 
       case 'subject_teacher':
-        // Only: enter result, broadsheet, timetable (+ dashboard)
         return {
           dashboard,
           resultEntry,
           broadsheet,
           timetable,
+          classAverages,
         }.contains(feature);
 
       case 'accountant':
-        // Only: manage fees, financial reports (under fees menu)
         return {
           dashboard,
           fees,
         }.contains(feature);
 
       case 'parent':
-        // Only own children's data via parent portal
+        // Only parent portal (own children). No manage announcements / configure timetable.
         return {
           dashboard,
           parentPortal,
-          announcements,
         }.contains(feature);
 
       default:
@@ -70,22 +71,18 @@ class Permissions {
       role == 'admin' || role == 'principal';
 
   static bool canDeleteUser(String actorRole, String targetRole) {
-    // Principal cannot delete administrator
     if (actorRole == 'principal' && targetRole == 'admin') return false;
-    // Nobody deletes the last admin via this helper (extra safety in UI)
     if (targetRole == 'admin' && actorRole != 'admin') return false;
     return canManageUsers(actorRole);
   }
 
-  static bool canEditResults(String role) =>
-      role == 'admin' ||
-      role == 'principal' ||
-      role == 'class_teacher' ||
-      role == 'subject_teacher';
+  /// Only admin & principal can add/edit/delete timetable entries.
+  /// Subject teacher, class teacher, parent, accountant: view only (or no access).
+  static bool canConfigureTimetable(String role) {
+    return role == 'admin' || role == 'principal';
+  }
 
-  static bool canPromote(String role) =>
-      role == 'admin' || role == 'principal';
-
-  static bool canManageFees(String role) =>
-      role == 'admin' || role == 'principal' || role == 'accountant';
+  static bool canManageAnnouncements(String role) {
+    return role == 'admin' || role == 'principal';
+  }
 }
