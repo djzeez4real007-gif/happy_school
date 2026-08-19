@@ -88,6 +88,7 @@ class ReportCardGenerator {
       attendanceTotal: attendanceTotal,
       promoted: promoted,
       promotionStatus: promotionStatus,
+      passportPath: student.passport.isNotEmpty ? student.passport : null,
     );
 
     await ReportCardStorage.addReportCard(reportCard);

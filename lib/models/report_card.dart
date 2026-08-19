@@ -28,6 +28,9 @@ class ReportCard {
   /// promoted | repeated | graduated | not_promoted | null
   final String? promotionStatus;
 
+  /// Local file path to student passport (optional).
+  final String? passportPath;
+
   ReportCard({
     required this.admissionNo,
     required this.studentName,
@@ -46,6 +49,7 @@ class ReportCard {
     required this.attendanceTotal,
     this.promoted,
     this.promotionStatus,
+    this.passportPath,
   });
 
   /// Label for UI / PDF
@@ -88,6 +92,7 @@ class ReportCard {
       "attendanceTotal": attendanceTotal,
       "promoted": promoted,
       "promotionStatus": promotionStatus,
+      "passportPath": passportPath,
     };
   }
 
@@ -124,6 +129,7 @@ class ReportCard {
       attendanceTotal: map["attendanceTotal"] ?? 0,
       promoted: promoted,
       promotionStatus: resolved,
+      passportPath: map["passportPath"]?.toString(),
     );
   }
 }

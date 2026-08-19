@@ -1,242 +1,571 @@
 import 'dart:io';
+import 'dart:typed_data';
 
-import 'package:path_provider/path_provider.dart';
-import 'package:printing/printing.dart';
-import 'package:share_plus/share_plus.dart';
-import 'package:cross_file/cross_file.dart';
+import 'package:flutter/services.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
+import 'package:printing/printing.dart';
 
 import '../models/report_card.dart';
 
+/// Formal, premium school performance report PDF.
 class ReportCardPdfService {
-  static Future<File> generatePdf(ReportCard reportCard) async {
+  static const _navy = PdfColor.fromInt(0xFF0F172A);
+  static const _blue = PdfColor.fromInt(0xFF1E40AF);
+  static const _blueSoft = PdfColor.fromInt(0xFFEFF6FF);
+  static const _slate = PdfColor.fromInt(0xFF64748B);
+  static const _dark = PdfColor.fromInt(0xFF0F172A);
+  static const _line = PdfColor.fromInt(0xFFCBD5E1);
+  static const _soft = PdfColor.fromInt(0xFFF8FAFC);
+
+  static Future<pw.ImageProvider?> _loadLogo() async {
+    try {
+      final data = await rootBundle.load('assets/images/school_logo.png');
+      return pw.MemoryImage(data.buffer.asUint8List());
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static Future<pw.ImageProvider?> _loadPassport(String? path) async {
+    if (path == null || path.trim().isEmpty) return null;
+    try {
+      final file = File(path);
+      if (!await file.exists()) return null;
+      final bytes = await file.readAsBytes();
+      if (bytes.isEmpty) return null;
+      return pw.MemoryImage(bytes);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _safeFilePart(String input) {
+    return input
+        .trim()
+        .replaceAll(RegExp(r'[\\/:*?"<>|]'), '')
+        .replaceAll(RegExp(r'\s+'), '_');
+  }
+
+  static String buildFileName(ReportCard rc) {
+    final name = _safeFilePart(rc.studentName);
+    final cls = _safeFilePart(rc.className);
+    final sess = _safeFilePart(rc.session);
+    return '${name}_${cls}_$sess.pdf';
+  }
+
+  static Future<Uint8List> buildPdfBytes(ReportCard rc) async {
     final pdf = pw.Document();
+    final logo = await _loadLogo();
+    final passport = await _loadPassport(rc.passportPath);
+
+    final subjects = rc.subjects;
+    final attPct = rc.attendanceTotal <= 0
+        ? 0.0
+        : (rc.attendancePresent / rc.attendanceTotal) * 100;
+
+    final gradeKeys = ['A1', 'B2', 'B3', 'C4', 'C5', 'C6', 'D7', 'E8', 'F9'];
+    final gradeCounts = {for (final g in gradeKeys) g: 0};
+    for (final s in subjects) {
+      final g = s.grade.toUpperCase();
+      if (gradeCounts.containsKey(g)) {
+        gradeCounts[g] = gradeCounts[g]! + 1;
+      }
+    }
+
+    pw.Widget kv(String label, String value) {
+      return pw.Padding(
+        padding: const pw.EdgeInsets.only(bottom: 3.5),
+        child: pw.RichText(
+          text: pw.TextSpan(
+            children: [
+              pw.TextSpan(
+                text: '$label:  ',
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: _slate,
+                ),
+              ),
+              pw.TextSpan(
+                text: value,
+                style: pw.TextStyle(
+                  fontSize: 9,
+                  fontWeight: pw.FontWeight.bold,
+                  color: _dark,
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    pw.Widget band(String title) {
+      return pw.Container(
+        width: double.infinity,
+        padding: const pw.EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: const pw.BoxDecoration(
+          color: _blue,
+          borderRadius: pw.BorderRadius.only(
+            topLeft: pw.Radius.circular(4),
+            topRight: pw.Radius.circular(4),
+          ),
+        ),
+        child: pw.Text(
+          title,
+          style: pw.TextStyle(
+            color: PdfColors.white,
+            fontSize: 9.5,
+            fontWeight: pw.FontWeight.bold,
+            letterSpacing: 0.6,
+          ),
+        ),
+      );
+    }
 
     pdf.addPage(
       pw.MultiPage(
         pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(24),
-
+        margin: const pw.EdgeInsets.fromLTRB(20, 18, 20, 18),
         build: (context) => [
-          // ==============================
-          // SCHOOL HEADER
-          // ==============================
-          pw.Center(
-            child: pw.Text(
-              'HAPPY SCHOOL',
-              style: pw.TextStyle(fontSize: 24, fontWeight: pw.FontWeight.bold),
-            ),
-          ),
-
-          pw.SizedBox(height: 5),
-
-          pw.Center(
-            child: pw.Text(
-              'STUDENT REPORT CARD',
-              style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold),
-            ),
-          ),
-
-          pw.SizedBox(height: 20),
-
-          // ==============================
-          // STUDENT INFORMATION
-          // ==============================
+          // ========== HEADER ==========
           pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            decoration: pw.BoxDecoration(border: pw.Border.all()),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
+            padding: const pw.EdgeInsets.fromLTRB(12, 10, 12, 10),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: _blue, width: 1.2),
+              borderRadius: pw.BorderRadius.circular(8),
+            ),
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.center,
               children: [
-                pw.Text('Student: ${reportCard.studentName}'),
-                pw.Text('Admission No: ${reportCard.admissionNo}'),
-                pw.Text('Class: ${reportCard.className}'),
-                pw.Text('Session: ${reportCard.session}'),
-                pw.Text('Term: ${reportCard.term}'),
+                if (logo != null)
+                  pw.Container(
+                    width: 52,
+                    height: 52,
+                    decoration: pw.BoxDecoration(
+                      borderRadius: pw.BorderRadius.circular(8),
+                      border: pw.Border.all(color: _line),
+                    ),
+                    child: pw.ClipRRect(
+                      horizontalRadius: 8,
+                      verticalRadius: 8,
+                      child: pw.Image(logo, fit: pw.BoxFit.contain),
+                    ),
+                  )
+                else
+                  pw.Container(
+                    width: 52,
+                    height: 52,
+                    decoration: pw.BoxDecoration(
+                      color: _blue,
+                      borderRadius: pw.BorderRadius.circular(8),
+                    ),
+                    child: pw.Center(
+                      child: pw.Text(
+                        'HS',
+                        style: pw.TextStyle(
+                          color: PdfColors.white,
+                          fontWeight: pw.FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                    ),
+                  ),
+                pw.SizedBox(width: 12),
+                pw.Expanded(
+                  child: pw.Column(
+                    children: [
+                      pw.Text(
+                        'HAPPY SCHOOL',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(
+                          fontSize: 18,
+                          fontWeight: pw.FontWeight.bold,
+                          color: _navy,
+                          letterSpacing: 1.1,
+                        ),
+                      ),
+                      pw.SizedBox(height: 2),
+                      pw.Text(
+                        'Excellence · Character · Leadership',
+                        textAlign: pw.TextAlign.center,
+                        style: const pw.TextStyle(fontSize: 8, color: _slate),
+                      ),
+                      pw.SizedBox(height: 6),
+                      pw.Container(
+                        padding: const pw.EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: pw.BoxDecoration(
+                          color: _blueSoft,
+                          borderRadius: pw.BorderRadius.circular(20),
+                        ),
+                        child: pw.Text(
+                          "${rc.term.toUpperCase()}  ·  STUDENT'S PERFORMANCE REPORT",
+                          style: pw.TextStyle(
+                            fontSize: 8.5,
+                            fontWeight: pw.FontWeight.bold,
+                            color: _blue,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                pw.SizedBox(width: 12),
+                // Passport photo
+                pw.Container(
+                  width: 56,
+                  height: 64,
+                  decoration: pw.BoxDecoration(
+                    color: _soft,
+                    border: pw.Border.all(color: _line),
+                    borderRadius: pw.BorderRadius.circular(4),
+                  ),
+                  child: passport != null
+                      ? pw.ClipRRect(
+                          horizontalRadius: 4,
+                          verticalRadius: 4,
+                          child: pw.Image(passport, fit: pw.BoxFit.cover),
+                        )
+                      : pw.Center(
+                          child: pw.Text(
+                            'PHOTO',
+                            style:
+                                const pw.TextStyle(fontSize: 7, color: _slate),
+                          ),
+                        ),
+                ),
               ],
             ),
           ),
+          pw.SizedBox(height: 10),
 
-          pw.SizedBox(height: 20),
-
-          // ==============================
-          // SUBJECT RESULTS TABLE
-          // ==============================
-          pw.TableHelper.fromTextArray(
-            border: pw.TableBorder.all(),
-            headerDecoration: const pw.BoxDecoration(color: PdfColors.grey300),
-            headerStyle: pw.TextStyle(
-              fontWeight: pw.FontWeight.bold,
-              fontSize: 10,
+          // ========== STUDENT INFO ==========
+          pw.Container(
+            padding: const pw.EdgeInsets.all(10),
+            decoration: pw.BoxDecoration(
+              color: _soft,
+              border: pw.Border.all(color: _line),
+              borderRadius: pw.BorderRadius.circular(6),
             ),
-            cellStyle: const pw.TextStyle(fontSize: 9),
-            headers: const [
-              'Subject',
-              'CA1',
-              'CA2',
-              'Exam',
-              'Total',
-              'Grade',
-              'Remark',
+            child: pw.Row(
+              crossAxisAlignment: pw.CrossAxisAlignment.start,
+              children: [
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      kv('Name', rc.studentName),
+                      kv('Class', rc.className),
+                      kv('Session', rc.session),
+                      kv('Term', rc.term),
+                    ],
+                  ),
+                ),
+                pw.Expanded(
+                  child: pw.Column(
+                    crossAxisAlignment: pw.CrossAxisAlignment.start,
+                    children: [
+                      kv('Admission No', rc.admissionNo),
+                      kv('Position', '${rc.position}'),
+                      kv('Overall Grade', rc.overallGrade),
+                      kv('Promotion', rc.promotionLabel),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          pw.SizedBox(height: 12),
+
+          // ========== SUBJECT PERFORMANCE ==========
+          band('SUBJECT PERFORMANCE'),
+          pw.Table(
+            border: pw.TableBorder.all(color: _line, width: 0.55),
+            columnWidths: {
+              0: const pw.FlexColumnWidth(2.6),
+              1: const pw.FlexColumnWidth(0.85),
+              2: const pw.FlexColumnWidth(0.85),
+              3: const pw.FlexColumnWidth(0.85),
+              4: const pw.FlexColumnWidth(0.9),
+              5: const pw.FlexColumnWidth(0.9),
+              6: const pw.FlexColumnWidth(1.5),
+            },
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: PdfColor.fromInt(0xFF1E3A8A)),
+                children: [
+                  _th('Subject'),
+                  _th('CA1'),
+                  _th('CA2'),
+                  _th('Exam'),
+                  _th('Total'),
+                  _th('Grade'),
+                  _th('Remark'),
+                ],
+              ),
+              ...List.generate(subjects.length, (i) {
+                final s = subjects[i];
+                final alt = i.isOdd;
+                return pw.TableRow(
+                  decoration: pw.BoxDecoration(
+                    color: alt ? _soft : PdfColors.white,
+                  ),
+                  children: [
+                    _td(s.subjectName, align: pw.TextAlign.left),
+                    _td(s.ca1.toStringAsFixed(0)),
+                    _td(s.ca2.toStringAsFixed(0)),
+                    _td(s.exam.toStringAsFixed(0)),
+                    _td(s.total.toStringAsFixed(1), bold: true),
+                    _td(s.grade, bold: true),
+                    _td(s.remark, align: pw.TextAlign.left),
+                  ],
+                );
+              }),
             ],
-            data: reportCard.subjects.map((subject) {
-              return [
-                subject.subjectName,
-                subject.ca1.toStringAsFixed(0),
-                subject.ca2.toStringAsFixed(0),
-                subject.exam.toStringAsFixed(0),
-                subject.total.toStringAsFixed(0),
-                subject.grade,
-                subject.remark,
-              ];
-            }).toList(),
           ),
+          pw.SizedBox(height: 12),
 
+          // ========== SUMMARY ROW ==========
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                flex: 3,
+                child: pw.Column(
+                  children: [
+                    band('PERFORMANCE SUMMARY'),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        color: _blueSoft,
+                        border: pw.Border.all(color: _line),
+                      ),
+                      child: pw.Column(
+                        children: [
+                          _sum('Total Score', rc.total.toStringAsFixed(1)),
+                          _sum('Average Score', rc.average.toStringAsFixed(2)),
+                          _sum('Overall Grade', rc.overallGrade),
+                          _sum('Class Position', '${rc.position}'),
+                          _sum('Subjects Offered', '${subjects.length}'),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              pw.Expanded(
+                flex: 2,
+                child: pw.Column(
+                  children: [
+                    band('ATTENDANCE SUMMARY'),
+                    pw.Container(
+                      width: double.infinity,
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: _line),
+                      ),
+                      child: pw.Column(
+                        children: [
+                          _sum('Times Present', '${rc.attendancePresent}'),
+                          _sum(
+                              'Times School Opened', '${rc.attendanceTotal}'),
+                          _sum('Attendance %', attPct.toStringAsFixed(1)),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 12),
+
+          // ========== GRADE ANALYSIS (no scale text) ==========
+          band('GRADE ANALYSIS'),
+          pw.Table(
+            border: pw.TableBorder.all(color: _line, width: 0.5),
+            children: [
+              pw.TableRow(
+                decoration: const pw.BoxDecoration(color: _soft),
+                children: [
+                  _th('Grade', dark: true),
+                  ...gradeKeys.map((g) => _th(g, dark: true)),
+                ],
+              ),
+              pw.TableRow(
+                children: [
+                  _td('No of Subjects', bold: true),
+                  ...gradeKeys.map((g) => _td('${gradeCounts[g]}')),
+                ],
+              ),
+            ],
+          ),
+          pw.SizedBox(height: 12),
+
+          // ========== REMARKS ==========
+          pw.Row(
+            crossAxisAlignment: pw.CrossAxisAlignment.start,
+            children: [
+              pw.Expanded(
+                child: pw.Column(
+                  children: [
+                    band("CLASS TEACHER'S REMARK"),
+                    pw.Container(
+                      width: double.infinity,
+                      constraints: const pw.BoxConstraints(minHeight: 50),
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: _line),
+                      ),
+                      child: pw.Text(
+                        rc.classTeacherRemark,
+                        style: const pw.TextStyle(fontSize: 9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              pw.SizedBox(width: 10),
+              pw.Expanded(
+                child: pw.Column(
+                  children: [
+                    band("PRINCIPAL'S REMARK"),
+                    pw.Container(
+                      width: double.infinity,
+                      constraints: const pw.BoxConstraints(minHeight: 50),
+                      padding: const pw.EdgeInsets.all(8),
+                      decoration: pw.BoxDecoration(
+                        border: pw.Border.all(color: _line),
+                      ),
+                      child: pw.Text(
+                        rc.principalRemark,
+                        style: const pw.TextStyle(fontSize: 9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           pw.SizedBox(height: 20),
 
-          // ==============================
-          // PERFORMANCE SUMMARY
-          // ==============================
-          pw.Container(
-            padding: const pw.EdgeInsets.all(10),
-            decoration: pw.BoxDecoration(border: pw.Border.all()),
-            child: pw.Column(
-              crossAxisAlignment: pw.CrossAxisAlignment.start,
-              children: [
-                pw.Text(
-                  'Total Score: '
-                  '${reportCard.total.toStringAsFixed(2)}',
-                ),
-                pw.Text(
-                  'Average: '
-                  '${reportCard.average.toStringAsFixed(2)}',
-                ),
-                pw.Text(
-                  'Overall Grade: '
-                  '${reportCard.overallGrade}',
-                ),
-                pw.Text(
-                  'Overall Remark: '
-                  '${reportCard.overallRemark}',
-                ),
-                pw.Text(
-                  'Position in Class: '
-                  '${reportCard.position}',
-                ),
-                pw.Text(
-                  'Attendance: '
-                  '${reportCard.attendancePresent}/'
-                  '${reportCard.attendanceTotal}',
-                ),
-                pw.Text(
-                  'Promotion: '
-                  '${reportCard.promotionLabel}',
-                ),
-              ],
-            ),
-          ),
-
-          pw.SizedBox(height: 20),
-
-          // ==============================
-          // CLASS TEACHER REMARK
-          // ==============================
-          pw.Text(
-            "Class Teacher's Remark",
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-
-          pw.SizedBox(height: 5),
-
-          pw.Text(reportCard.classTeacherRemark),
-
-          pw.SizedBox(height: 15),
-
-          // ==============================
-          // PRINCIPAL REMARK
-          // ==============================
-          pw.Text(
-            "Principal's Remark",
-            style: pw.TextStyle(fontWeight: pw.FontWeight.bold),
-          ),
-
-          pw.SizedBox(height: 5),
-
-          pw.Text(reportCard.principalRemark),
-
-          pw.SizedBox(height: 40),
-
-          // ==============================
-          // SIGNATURES
-          // ==============================
+          // ========== SIGNATURES ==========
           pw.Row(
             mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
             children: [
               pw.Column(
                 children: [
-                  pw.Container(width: 160, child: pw.Divider()),
-                  pw.Text('Class Teacher'),
+                  pw.Container(
+                    width: 150,
+                    child: pw.Divider(color: _dark, thickness: 1),
+                  ),
+                  pw.Text('Class Teacher',
+                      style: const pw.TextStyle(fontSize: 8, color: _slate)),
                 ],
               ),
               pw.Column(
                 children: [
-                  pw.Container(width: 160, child: pw.Divider()),
-                  pw.Text('Principal'),
+                  pw.Container(
+                    width: 150,
+                    child: pw.Divider(color: _dark, thickness: 1),
+                  ),
+                  pw.Text('Principal',
+                      style: const pw.TextStyle(fontSize: 8, color: _slate)),
                 ],
               ),
             ],
           ),
-
-          pw.SizedBox(height: 30),
-
+          pw.SizedBox(height: 12),
           pw.Center(
             child: pw.Text(
               'Generated by Happy School Management System',
-              style: const pw.TextStyle(fontSize: 9),
+              style: const pw.TextStyle(fontSize: 7.5, color: _slate),
             ),
           ),
         ],
       ),
     );
 
-    // ==============================
-    // SAVE FILE
-    // ==============================
-
-    final directory = await getApplicationDocumentsDirectory();
-
-    final safeTerm = reportCard.term.replaceAll(' ', '_').replaceAll('/', '_');
-
-    final file = File(
-      '${directory.path}/'
-      '${reportCard.admissionNo}_'
-      '${safeTerm}_ReportCard.pdf',
-    );
-
-    await file.writeAsBytes(await pdf.save());
-
-    return file;
+    return pdf.save();
   }
 
+  static pw.Widget _th(String text, {bool dark = false}) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(4),
+      child: pw.Text(
+        text,
+        textAlign: pw.TextAlign.center,
+        style: pw.TextStyle(
+          fontSize: 8,
+          fontWeight: pw.FontWeight.bold,
+          color: dark ? _dark : PdfColors.white,
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _td(
+    String text, {
+    bool bold = false,
+    pw.TextAlign align = pw.TextAlign.center,
+  }) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.all(3.5),
+      child: pw.Text(
+        text,
+        textAlign: align,
+        style: pw.TextStyle(
+          fontSize: 8,
+          fontWeight: bold ? pw.FontWeight.bold : pw.FontWeight.normal,
+          color: _dark,
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _sum(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.symmetric(vertical: 2.5),
+      child: pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(label, style: const pw.TextStyle(fontSize: 9, color: _slate)),
+          pw.Text(
+            value,
+            style: pw.TextStyle(
+              fontSize: 9,
+              fontWeight: pw.FontWeight.bold,
+              color: _dark,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
   static Future<void> printReportCard(ReportCard reportCard) async {
-    final file = await generatePdf(reportCard);
-    final bytes = await file.readAsBytes();
+    final bytes = await buildPdfBytes(reportCard);
     await Printing.layoutPdf(
       onLayout: (format) async => bytes,
-      name: '${reportCard.studentName}_report_card',
+      name: buildFileName(reportCard).replaceAll('.pdf', ''),
     );
   }
 
   static Future<void> shareReportCard(ReportCard reportCard) async {
-    final file = await generatePdf(reportCard);
-    await SharePlus.instance.share(
-      ShareParams(
-        files: [XFile(file.path)],
-        text:
-            'Report card — ${reportCard.studentName} (${reportCard.session} · ${reportCard.term})',
-      ),
+    final bytes = await buildPdfBytes(reportCard);
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: buildFileName(reportCard),
     );
+  }
+
+  static Future<void> generatePdf(ReportCard reportCard) async {
+    await printReportCard(reportCard);
   }
 }

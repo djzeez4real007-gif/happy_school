@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/premium_feedback.dart';
@@ -32,6 +35,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
   String qualification = 'B.Ed';
   String department = 'Science';
   bool saving = false;
+
+  File? passportImage;
+  final ImagePicker _picker = ImagePicker();
+
 
   bool get isEdit => widget.teacher != null;
 
@@ -75,6 +82,16 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
     super.dispose();
   }
 
+  Future<void> pickPassport() async {
+    final XFile? image = await _picker.pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 85,
+      maxWidth: 800,
+    );
+    if (image == null) return;
+    setState(() => passportImage = File(image.path));
+  }
+
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     setState(() => saving = true);
@@ -89,7 +106,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       address: addressController.text.trim(),
       qualification: qualification,
       department: department,
-      passport: '',
+      passport: passportImage?.path ?? '',
     );
     try {
       if (isEdit) {
@@ -264,6 +281,85 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                   onChanged: (v) {
                     if (v != null) setState(() => department = v);
                   },
+                ),
+                const SizedBox(height: 20),
+                const Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'PASSPORT PHOTOGRAPH',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 0.4,
+                      color: Color(0xFF64748B),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Center(
+                  child: Column(
+                    children: [
+                      GestureDetector(
+                        onTap: pickPassport,
+                        child: Container(
+                          width: 110,
+                          height: 110,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: const Color(0xFFEFF6FF),
+                            border: Border.all(
+                              color: const Color(0xFF2563EB).withValues(alpha: 0.35),
+                              width: 2,
+                            ),
+                            image: passportImage != null
+                                ? DecorationImage(
+                                    image: FileImage(passportImage!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF2563EB)
+                                    .withValues(alpha: 0.12),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: passportImage == null
+                              ? const Icon(
+                                  Icons.camera_alt_rounded,
+                                  size: 36,
+                                  color: Color(0xFF2563EB),
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        passportImage == null
+                            ? 'Tap to upload passport photo'
+                            : 'Tap to change photo',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                        ),
+                      ),
+                      if (passportImage != null) ...[
+                        const SizedBox(height: 6),
+                        TextButton.icon(
+                          onPressed: () =>
+                              setState(() => passportImage = null),
+                          icon: const Icon(Icons.delete_outline, size: 18),
+                          label: const Text('Remove photo'),
+                          style: TextButton.styleFrom(
+                            foregroundColor: const Color(0xFFDC2626),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 22),
                 PremiumForm.primaryButton(
