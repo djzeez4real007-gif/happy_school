@@ -34,11 +34,22 @@ class ReceiptScreen extends StatelessWidget {
 
   Future<void> _print(BuildContext context) async {
     try {
-      await ReceiptPdfService.generateReceipt(payment);
+      await ReceiptPdfService.printReceipt(payment);
     } catch (e) {
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Unable to print: $e')),
+      );
+    }
+  }
+
+  Future<void> _share(BuildContext context) async {
+    try {
+      await ReceiptPdfService.shareReceipt(payment);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to share: $e')),
       );
     }
   }
@@ -75,6 +86,12 @@ class ReceiptScreen extends StatelessWidget {
                     onPressed: () => _print(context),
                     icon: const Icon(Icons.print_rounded, size: 18),
                     label: const Text('Print'),
+                    style: TextButton.styleFrom(foregroundColor: Colors.white),
+                  ),
+                  TextButton.icon(
+                    onPressed: () => _share(context),
+                    icon: const Icon(Icons.share_rounded, size: 18),
+                    label: const Text('Share'),
                     style: TextButton.styleFrom(foregroundColor: Colors.white),
                   ),
                 ],
@@ -337,16 +354,35 @@ class ReceiptScreen extends StatelessWidget {
                   ),
                   const SizedBox(width: 12),
                   Expanded(
-                    flex: 2,
                     child: ElevatedButton.icon(
                       onPressed: () => _print(context),
-                      icon: const Icon(Icons.print_rounded),
+                      icon: const Icon(Icons.print_rounded, size: 18),
                       label: const Text(
-                        'Print / Share',
+                        'Print',
                         style: TextStyle(fontWeight: FontWeight.w800),
                       ),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF059669),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(14),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton.icon(
+                      onPressed: () => _share(context),
+                      icon: const Icon(Icons.share_rounded, size: 18),
+                      label: const Text(
+                        'Share',
+                        style: TextStyle(fontWeight: FontWeight.w800),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF2563EB),
                         foregroundColor: Colors.white,
                         elevation: 0,
                         padding: const EdgeInsets.symmetric(vertical: 14),

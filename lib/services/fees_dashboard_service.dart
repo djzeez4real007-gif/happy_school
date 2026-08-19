@@ -1,4 +1,5 @@
 import '../core/utils/sessions.dart';
+import '../models/student_class.dart';
 import '../models/student_fee_payment.dart';
 import 'school_fee_storage.dart';
 import 'student_class_storage.dart';
@@ -6,13 +7,51 @@ import 'student_fee_payment_storage.dart';
 import 'student_storage.dart';
 
 class FeesDashboardService {
+  static String _norm(String s) =>
+      s.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+
+  static bool _inactive(String className) {
+    final c = className.trim().toLowerCase();
+    return c == 'graduated' || c == 'left' || c == 'withdrawn';
+  }
+
+  /// Class assignment for this student in the selected session
+  /// (promoted / repeated students use their current class).
+  static StudentClass? _assignmentForSession(
+    List<StudentClass> assignments,
+    String admissionNo,
+    String session,
+  ) {
+    final adm = admissionNo.trim().toLowerCase();
+    final sess = session.trim();
+    final matches = assignments
+        .where(
+          (a) =>
+              a.admissionNo.trim().toLowerCase() == adm &&
+              a.session.trim() == sess,
+        )
+        .toList();
+    if (matches.isEmpty) return null;
+    return matches.last;
+  }
+
+  static bool _classMatches(String studentClass, String filter) {
+    if (filter == 'All' || filter.trim().isEmpty) return true;
+    final a = _norm(studentClass);
+    final b = _norm(filter);
+    if (a.isEmpty || b.isEmpty) return false;
+    return a == b || a.startsWith(b) || b.startsWith(a);
+  }
+
   /// Snapshot of fee status for assigned students in a session/term.
   static Future<_FeeSnapshot> _snapshot({
     String? session,
     String? term,
+    String? classFilter,
   }) async {
-    final sess = session ?? Sessions.current();
-    final trm = term ?? 'First Term';
+    final sess = (session ?? Sessions.current()).trim();
+    final trm = (term ?? 'First Term').trim();
+    final filter = classFilter ?? 'All';
 
     final students = await StudentStorage.getStudents();
     final assignments = await StudentClassStorage.getStudents();
@@ -26,9 +65,14 @@ class FeesDashboardService {
 
     for (final student in students) {
       try {
-        final sc = assignments.firstWhere(
-          (e) => e.admissionNo == student.admissionNo,
+        final sc = _assignmentForSession(
+          assignments,
+          student.admissionNo,
+          sess,
         );
+        if (sc == null) continue;
+        if (_inactive(sc.className)) continue;
+        if (!_classMatches(sc.className, filter)) continue;
 
         final fee = await SchoolFeeStorage.getFee(
           sc.className,
@@ -54,9 +98,7 @@ class FeesDashboardService {
         } else {
           fullyPaid++;
         }
-      } catch (_) {
-        // not assigned to a class
-      }
+      } catch (_) {}
     }
 
     return _FeeSnapshot(
@@ -69,74 +111,101 @@ class FeesDashboardService {
     );
   }
 
-  //=========================
-  // TOTAL MONEY RECEIVED (all payments ever)
-  //=========================
-  static Future<double> totalFeesCollected() async {
+  /// Money received for the selected session/term (not all-time).
+  static Future<double> totalFeesCollected({
+    String? session,
+    String? term,
+    String? classFilter,
+  }) async {
+    final sess = session?.trim();
+    final trm = term?.trim();
+    final filter = classFilter ?? 'All';
+
     final payments = await StudentFeePaymentStorage.getPayments();
     double total = 0;
     for (final payment in payments) {
+      if (sess != null &&
+          sess.isNotEmpty &&
+          payment.session.trim() != sess) {
+        continue;
+      }
+      if (trm != null &&
+          trm.isNotEmpty &&
+          payment.term.trim().toLowerCase() != trm.toLowerCase()) {
+        continue;
+      }
+      if (!_classMatches(payment.className, filter)) continue;
       total += payment.amountPaid;
     }
     return total;
   }
 
-  //=========================
-  // TOTAL OUTSTANDING (assigned students who still owe this term)
-  // Includes zero-payment students.
-  //=========================
   static Future<double> totalOutstanding({
     String? session,
     String? term,
+    String? classFilter,
   }) async {
-    final s = await _snapshot(session: session, term: term);
+    final s = await _snapshot(
+      session: session,
+      term: term,
+      classFilter: classFilter,
+    );
     return s.outstanding;
   }
 
-  //=========================
-  // NUMBER OF PAYMENTS
-  //=========================
-  static Future<int> totalPayments() async {
-    final payments = await StudentFeePaymentStorage.getPayments();
-    return payments.length;
-  }
-
-  //=========================
-  // STUDENTS WHO HAVE MADE AT LEAST ONE PAYMENT
-  //=========================
-  static Future<int> totalStudentsPaid() async {
-    final payments = await StudentFeePaymentStorage.getPayments();
-    final students = <String>{};
-    for (final payment in payments) {
-      students.add(payment.admissionNo);
-    }
-    return students.length;
-  }
-
-  /// Students fully cleared for the selected session/term.
-  static Future<int> totalStudentsFullyPaid({
+  static Future<int> totalStudentsPaid({
     String? session,
     String? term,
+    String? classFilter,
   }) async {
-    final s = await _snapshot(session: session, term: term);
+    final s = await _snapshot(
+      session: session,
+      term: term,
+      classFilter: classFilter,
+    );
     return s.fullyPaid;
   }
 
-  //=========================
-  // TOTAL DEBTORS
-  // Anyone with a fee set who has not fully paid (includes ₦0 paid).
-  //=========================
   static Future<int> totalDebtors({
     String? session,
     String? term,
+    String? classFilter,
   }) async {
-    final s = await _snapshot(session: session, term: term);
+    final s = await _snapshot(
+      session: session,
+      term: term,
+      classFilter: classFilter,
+    );
     return s.debtors;
   }
 
-  //=========================
-  // RECENT PAYMENTS
-  //=========================
+  static Future<double> collectionPercentage({
+    String? session,
+    String? term,
+    String? classFilter,
+  }) async {
+    final s = await _snapshot(
+      session: session,
+      term: term,
+      classFilter: classFilter,
+    );
+    if (s.expected <= 0) return 0;
+    return (s.collectedForTerm / s.expected) * 100;
+  }
+
+  static Future<double> expectedTotal({
+    String? session,
+    String? term,
+    String? classFilter,
+  }) async {
+    final s = await _snapshot(
+      session: session,
+      term: term,
+      classFilter: classFilter,
+    );
+    return s.expected;
+  }
+
   static Future<List<StudentFeePayment>> recentPayments() async {
     final payments = await StudentFeePaymentStorage.getPayments();
     payments.sort((a, b) => b.paymentDate.compareTo(a.paymentDate));
@@ -144,13 +213,33 @@ class FeesDashboardService {
     return payments.take(5).toList();
   }
 
-  static Future<double> collectionPercentage({
+
+  /// Number of payment records (optionally filtered).
+  static Future<int> totalPayments({
     String? session,
     String? term,
+    String? classFilter,
   }) async {
-    final s = await _snapshot(session: session, term: term);
-    if (s.expected <= 0) return 0;
-    return (s.collectedForTerm / s.expected) * 100;
+    final sess = session?.trim();
+    final trm = term?.trim();
+    final filter = classFilter ?? 'All';
+    final payments = await StudentFeePaymentStorage.getPayments();
+    int count = 0;
+    for (final payment in payments) {
+      if (sess != null &&
+          sess.isNotEmpty &&
+          payment.session.trim() != sess) {
+        continue;
+      }
+      if (trm != null &&
+          trm.isNotEmpty &&
+          payment.term.trim().toLowerCase() != trm.toLowerCase()) {
+        continue;
+      }
+      if (!_classMatches(payment.className, filter)) continue;
+      count++;
+    }
+    return count;
   }
 
   static Future<double> todayCollection() async {

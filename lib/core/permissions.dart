@@ -30,7 +30,8 @@ class Permissions {
         return true;
 
       case 'class_teacher':
-        // Results, broadsheet, attendance, view timetable, term averages
+        // Results, broadsheet, attendance, view timetable, term averages,
+        // view announcements only
         return {
           dashboard,
           resultEntry,
@@ -38,15 +39,18 @@ class Permissions {
           attendance,
           timetable,
           classAverages,
+          announcements,
         }.contains(feature);
 
       case 'subject_teacher':
+        // View announcements only (no create/edit/delete)
         return {
           dashboard,
           resultEntry,
           broadsheet,
           timetable,
           classAverages,
+          announcements,
         }.contains(feature);
 
       case 'accountant':
@@ -56,10 +60,11 @@ class Permissions {
         }.contains(feature);
 
       case 'parent':
-        // Only parent portal (own children). No manage announcements / configure timetable.
+        // Parent portal + view announcements only
         return {
           dashboard,
           parentPortal,
+          announcements,
         }.contains(feature);
 
       default:
@@ -83,6 +88,7 @@ class Permissions {
   }
 
   static bool canManageAnnouncements(String role) {
+    // Class teacher, subject teacher, parent: view only
     return role == 'admin' || role == 'principal';
   }
 }

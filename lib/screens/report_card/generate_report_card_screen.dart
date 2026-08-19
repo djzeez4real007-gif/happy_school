@@ -210,6 +210,10 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
 
       final wasRepeated = myPromo.any((p) => p.outcome == 'repeated');
       final wasPromoted = myPromo.any((p) => p.outcome == 'promoted');
+      final wasLeft = myPromo.any((p) =>
+          p.outcome == 'left' ||
+          p.toClass.trim().toLowerCase() == 'left' ||
+          p.toClass.trim().toLowerCase() == 'withdrawn');
 
       final nextAssignments = history.where((h) {
         return h.session.trim() == nextSession;
@@ -218,11 +222,20 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
       final graduatedRecord = nextAssignments
           .where((h) => h.className.trim().toLowerCase() == 'graduated')
           .toList();
+      final leftRecord = nextAssignments
+          .where((h) {
+            final c = h.className.trim().toLowerCase();
+            return c == 'left' || c == 'withdrawn';
+          })
+          .toList();
       final retainedRecord = nextAssignments
           .where((h) => h.className.trim().toLowerCase() == 'retained')
           .toList();
 
-      if (wasRepeated) {
+      if (wasLeft || leftRecord.isNotEmpty) {
+        promoted = false;
+        promotionStatus = 'left';
+      } else if (wasRepeated) {
         promoted = false;
         promotionStatus = 'repeated';
       } else if (graduatedRecord.isNotEmpty) {
@@ -235,9 +248,13 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
         // Infer from next-session class vs current class
         final nextClass = nextAssignments.last.className;
         final nextNorm = norm(nextClass);
-        if (nextClass.trim().toLowerCase() == 'graduated') {
+        final nextLower = nextClass.trim().toLowerCase();
+        if (nextLower == 'graduated') {
           promoted = true;
           promotionStatus = 'graduated';
+        } else if (nextLower == 'left' || nextLower == 'withdrawn') {
+          promoted = false;
+          promotionStatus = 'left';
         } else if (nextNorm == currentClassNorm ||
             nextNorm.startsWith(currentClassNorm) ||
             currentClassNorm.startsWith(nextNorm)) {

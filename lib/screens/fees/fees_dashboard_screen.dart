@@ -11,7 +11,6 @@ import 'receipt_history_screen.dart';
 import 'debtors_list_screen.dart';
 import 'student_payment_history_screen.dart';
 import 'receipt_archive_screen.dart';
-import 'fees_statistics_screen.dart';
 import 'fee_payment_status_screen.dart';
 import 'financial_reports_screen.dart';
 
@@ -56,19 +55,31 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
   Future<void> loadStats() async {
     setState(() => loading = true);
     try {
-      collected = await FeesDashboardService.totalFeesCollected();
+      final classFilter = selectedClass;
+      collected = await FeesDashboardService.totalFeesCollected(
+        session: selectedSession,
+        term: selectedTerm,
+        classFilter: classFilter,
+      );
       outstanding = await FeesDashboardService.totalOutstanding(
         session: selectedSession,
         term: selectedTerm,
+        classFilter: classFilter,
       );
       debtors = await FeesDashboardService.totalDebtors(
         session: selectedSession,
         term: selectedTerm,
+        classFilter: classFilter,
       );
-      studentsPaid = await FeesDashboardService.totalStudentsPaid();
+      studentsPaid = await FeesDashboardService.totalStudentsPaid(
+        session: selectedSession,
+        term: selectedTerm,
+        classFilter: classFilter,
+      );
       collectionPct = await FeesDashboardService.collectionPercentage(
         session: selectedSession,
         term: selectedTerm,
+        classFilter: classFilter,
       );
     } catch (_) {}
     if (!mounted) return;
@@ -137,13 +148,6 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
         subtitle: 'Archive and reprint receipts',
         color: const Color(0xFF7C3AED),
         page: const ReceiptArchiveScreen(),
-      ),
-      _FeeItem(
-        icon: Icons.bar_chart_rounded,
-        title: 'Fees Statistics',
-        subtitle: 'Collections overview',
-        color: const Color(0xFF0D9488),
-        page: const FeesStatisticsScreen(),
       ),
       _FeeItem(
         icon: Icons.assessment_rounded,

@@ -72,15 +72,33 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     int debtors = 0;
     int withFee = 0;
 
+    String norm(String s) =>
+        s.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+
+    bool classMatches(String studentClass, String filter) {
+      if (filter == 'All') return true;
+      final a = norm(studentClass);
+      final b = norm(filter);
+      return a == b || a.startsWith(b) || b.startsWith(a);
+    }
+
     for (final student in students) {
       try {
-        final sc = assignments.firstWhere(
-          (e) => e.admissionNo == student.admissionNo,
-        );
-
-        if (selectedClass != 'All' && sc.className != selectedClass) {
+        final adm = student.admissionNo.trim().toLowerCase();
+        final matches = assignments
+            .where(
+              (e) =>
+                  e.admissionNo.trim().toLowerCase() == adm &&
+                  e.session.trim() == selectedSession.trim(),
+            )
+            .toList();
+        if (matches.isEmpty) continue;
+        final sc = matches.last;
+        final cls = sc.className.trim().toLowerCase();
+        if (cls == 'graduated' || cls == 'left' || cls == 'withdrawn') {
           continue;
         }
+        if (!classMatches(sc.className, selectedClass)) continue;
 
         final fee = await SchoolFeeStorage.getFee(
           sc.className,
@@ -98,7 +116,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
           term: selectedTerm,
         );
 
-        collected += paid;
+        collected += paid > fee.totalFee ? fee.totalFee : paid;
         final bal = fee.totalFee - paid;
         if (bal > 0.01) {
           debtors++;

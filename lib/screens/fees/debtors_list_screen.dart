@@ -41,9 +41,20 @@ class _DebtorsListScreenState extends State<DebtorsListScreen> {
 
     for (final student in students) {
       try {
-        final studentClass = classAssignments.firstWhere(
-          (e) => e.admissionNo == student.admissionNo,
-        );
+        final adm = student.admissionNo.trim().toLowerCase();
+        final matches = classAssignments
+            .where(
+              (e) =>
+                  e.admissionNo.trim().toLowerCase() == adm &&
+                  e.session.trim() == selectedSession.trim(),
+            )
+            .toList();
+        if (matches.isEmpty) continue;
+        final studentClass = matches.last;
+        final cls = studentClass.className.trim().toLowerCase();
+        if (cls == 'graduated' || cls == 'left' || cls == 'withdrawn') {
+          continue;
+        }
 
         final SchoolFee? schoolFee = await SchoolFeeStorage.getFee(
           studentClass.className,

@@ -823,9 +823,7 @@ class ReportCardScreen extends StatelessWidget {
           child: SizedBox(
             height: 52,
             child: OutlinedButton.icon(
-              onPressed: () {
-                // Sharing will be added later.
-              },
+              onPressed: () => sharePdf(context),
               icon: const Icon(Icons.share_outlined),
               label: const Text(
                 'Share',
@@ -851,19 +849,26 @@ class ReportCardScreen extends StatelessWidget {
 
   Future<void> generatePdf(BuildContext context) async {
     try {
-      final file = await ReportCardPdfService.generatePdf(reportCard);
-
-      await OpenFilex.open(file.path);
+      await ReportCardPdfService.printReportCard(reportCard);
     } catch (e) {
-      if (!context.mounted) {
-        return;
-      }
-
+      if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Unable to generate report card PDF: $e')),
       );
     }
   }
+
+  Future<void> sharePdf(BuildContext context) async {
+    try {
+      await ReportCardPdfService.shareReportCard(reportCard);
+    } catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to share report card: $e')),
+      );
+    }
+  }
+
 
   // ==========================================================
   // GENERIC CARD

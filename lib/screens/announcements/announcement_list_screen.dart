@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../core/permissions.dart';
+import '../../services/auth_service.dart';
+
 import '../../core/theme/app_colors.dart';
 
 import '../../models/announcement.dart';
@@ -14,6 +17,9 @@ class AnnouncementListScreen extends StatefulWidget {
 }
 
 class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
+  bool get canManage =>
+      Permissions.canManageAnnouncements(AuthService.currentRole);
+
   List<Announcement> announcements = [];
   bool loading = true;
 
@@ -118,12 +124,14 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: canManage
+          ? FloatingActionButton.extended(
         onPressed: openNewAnnouncement,
         backgroundColor: _primary,
         icon: const Icon(Icons.add_rounded),
         label: const Text('New'),
-      ),
+      )
+          : null,
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : announcements.isEmpty
@@ -260,6 +268,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
                                 ],
                               ),
                             ),
+                            if (canManage)
                             PopupMenuButton<String>(
                               onSelected: (value) async {
                                 if (value == 'edit') {

@@ -25,6 +25,7 @@ import '../timetable/timetable_screen.dart';
 import '../timetable/timetable_settings_screen.dart';
 import '../promotion/student_promotion_screen.dart';
 import '../parent/parent_portal_screen.dart';
+import '../parent/parent_child_detail_screen.dart';
 
 import '../../widgets/dashboard_header.dart';
 import '../../widgets/stat_card.dart';
@@ -193,6 +194,24 @@ class _DashboardScreenState extends State<DashboardScreen>
   // GREETING
   // ============================================================
 
+  Widget _parentChip(String text, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        text,
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 11.5,
+        ),
+      ),
+    );
+  }
+
   String greeting() {
     final hour = DateTime.now().hour;
 
@@ -359,103 +378,288 @@ class _DashboardScreenState extends State<DashboardScreen>
 
               // Parent: show linked children on main dashboard
               if (role == 'parent') ...[
-                FutureBuilder<List<Map<String, String>>>(
-                  future: _loadParentChildren(),
-                  builder: (context, snap) {
-                    final kids = snap.data ?? [];
-                    if (snap.connectionState == ConnectionState.waiting) {
-                      return const Padding(
-                        padding: EdgeInsets.only(bottom: 16),
-                        child: LinearProgressIndicator(minHeight: 2),
-                      );
-                    }
-                    if (kids.isEmpty) {
-                      return Container(
-                        width: double.infinity,
-                        margin: const EdgeInsets.only(bottom: 16),
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: AppColors.card(context),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: AppColors.cardBorder(context)),
-                        ),
-                        child: const Text(
-                          'No children linked to this account yet.',
-                          style: TextStyle(fontWeight: FontWeight.w600),
-                        ),
-                      );
-                    }
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'My Children',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                            fontSize: 18,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        ...kids.map((k) {
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 10),
-                            decoration: BoxDecoration(
-                              color: AppColors.card(context),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: AppColors.cardBorder(context),
-                              ),
+                // Announcement above My Children (not below)
+                buildAnnouncementTicker(),
+                const SizedBox(height: 14),
+                Expanded(
+                  child: FutureBuilder<List<Map<String, String>>>(
+                    future: _loadParentChildren(),
+                    builder: (context, snap) {
+                      final kids = snap.data ?? [];
+                      if (snap.connectionState == ConnectionState.waiting) {
+                        return const Center(child: CircularProgressIndicator());
+                      }
+                      if (kids.isEmpty) {
+                        return Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.all(28),
+                          decoration: BoxDecoration(
+                            color: AppColors.card(context),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: AppColors.cardBorder(context),
                             ),
-                            child: ListTile(
-                              leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF2563EB)
-                                    .withValues(alpha: 0.12),
+                          ),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.family_restroom_rounded,
+                                size: 48,
+                                color: Colors.blue.shade300,
+                              ),
+                              const SizedBox(height: 14),
+                              const Text(
+                                'No children linked yet',
+                                style: TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 17,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                'Ask the school admin to link your child\'s admission number to this parent account.',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  color: AppColors.textSecondary(context),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }
+                      return ListView(
+                        padding: const EdgeInsets.only(bottom: 20),
+                        children: [
+                          Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  gradient: const LinearGradient(
+                                    colors: [
+                                      Color(0xFF1D4ED8),
+                                      Color(0xFF60A5FA),
+                                    ],
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.people_alt_rounded,
+                                  color: Colors.white,
+                                  size: 22,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'My Children',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 22,
+                                      ),
+                                    ),
+                                    Text(
+                                      'Tap a card to view full academic & fee details',
+                                      style: TextStyle(
+                                        color: AppColors.textSecondary(context),
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEFF6FF),
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
                                 child: Text(
-                                  (k['name'] ?? '?')[0].toUpperCase(),
+                                  '${kids.length}',
                                   style: const TextStyle(
-                                    color: Color(0xFF2563EB),
                                     fontWeight: FontWeight.w900,
+                                    color: Color(0xFF1D4ED8),
                                   ),
                                 ),
                               ),
-                              title: Text(
-                                k['name'] ?? '',
-                                style: const TextStyle(fontWeight: FontWeight.w800),
-                              ),
-                              subtitle: Text(
-                                '${k['admissionNo'] ?? ''}'
-                                '${(k['className'] ?? '').isNotEmpty ? ' · ${k['className']}' : ''}'
-                                '${(k['session'] ?? '').isNotEmpty ? ' · ${k['session']}' : ''}',
-                              ),
-                              trailing: const Icon(Icons.chevron_right),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const ParentPortalScreen(),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          ...kids.map((k) {
+                            final name = k['name'] ?? '';
+                            final initial =
+                                name.isNotEmpty ? name[0].toUpperCase() : '?';
+                            final className = k['className'] ?? '';
+                            final session = k['session'] ?? '';
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 14),
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(20),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: const Color(0xFF1D4ED8)
+                                        .withValues(alpha: 0.08),
+                                    blurRadius: 16,
+                                    offset: const Offset(0, 6),
                                   ),
-                                );
-                              },
-                            ),
-                          );
-                        }),
-                        const SizedBox(height: 8),
-                      ],
-                    );
-                  },
+                                ],
+                              ),
+                              child: Material(
+                                color: AppColors.card(context),
+                                borderRadius: BorderRadius.circular(20),
+                                child: InkWell(
+                                  borderRadius: BorderRadius.circular(20),
+                                  onTap: () async {
+                                    final students =
+                                        await StudentStorage.getStudents();
+                                    final adm = (k['admissionNo'] ?? '')
+                                        .trim()
+                                        .toLowerCase();
+                                    final match = students
+                                        .where((s) =>
+                                            s.admissionNo
+                                                .trim()
+                                                .toLowerCase() ==
+                                            adm)
+                                        .toList();
+                                    if (!context.mounted) return;
+                                    if (match.isEmpty) return;
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) =>
+                                            ParentChildDetailScreen(
+                                          student: match.first,
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                  child: Container(
+                                    padding: const EdgeInsets.all(16),
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: AppColors.cardBorder(context),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 56,
+                                          height: 56,
+                                          decoration: BoxDecoration(
+                                            gradient: const LinearGradient(
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                              colors: [
+                                                Color(0xFF1E3A8A),
+                                                Color(0xFF3B82F6),
+                                              ],
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(16),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: Text(
+                                            initial,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontWeight: FontWeight.w900,
+                                              fontSize: 22,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 14),
+                                        Expanded(
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                name,
+                                                style: const TextStyle(
+                                                  fontWeight: FontWeight.w900,
+                                                  fontSize: 16,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 4),
+                                              Text(
+                                                k['admissionNo'] ?? '',
+                                                style: TextStyle(
+                                                  color:
+                                                      AppColors.textSecondary(
+                                                          context),
+                                                  fontWeight: FontWeight.w600,
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Wrap(
+                                                spacing: 6,
+                                                runSpacing: 6,
+                                                children: [
+                                                  if (className.isNotEmpty)
+                                                    _parentChip(
+                                                      className,
+                                                      const Color(0xFF1D4ED8),
+                                                    ),
+                                                  if (session.isNotEmpty)
+                                                    _parentChip(
+                                                      session,
+                                                      const Color(0xFF059669),
+                                                    ),
+                                                ],
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        Container(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFFEFF6FF),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          child: const Icon(
+                                            Icons.arrow_forward_ios_rounded,
+                                            size: 14,
+                                            color: Color(0xFF1D4ED8),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ],
 
-              const SizedBox(height: 25),
+if (role != 'parent') const SizedBox(height: 12),
 
               // ==================================================
               // MOVING ANNOUNCEMENTS
               // ==================================================
-              buildAnnouncementTicker(),
+              if (role != 'parent') buildAnnouncementTicker(),
 
               // ==================================================
-              // DASHBOARD CARDS
+              // DASHBOARD CARDS (not for parent — they use My Children)
               // ==================================================
+              if (role != 'parent')
               Expanded(
                 child: GridView.count(
                   crossAxisCount: 2,
@@ -679,7 +883,9 @@ class _DashboardScreenState extends State<DashboardScreen>
                     StatCard(
                       icon: Icons.campaign,
                       title: "Announcements",
-                      value: "Manage",
+                      value: Permissions.canManageAnnouncements(role)
+                          ? "Manage"
+                          : "View",
                       color: Colors.teal,
                       onTap: openAnnouncements,
                     ),

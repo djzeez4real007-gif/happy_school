@@ -58,6 +58,8 @@ class ReportCard {
         return 'REPEATED';
       case 'graduated':
         return 'GRADUATED';
+      case 'left':
+        return 'LEFT SCHOOL';
       case 'not_promoted':
         return 'NOT PROMOTED';
       default:

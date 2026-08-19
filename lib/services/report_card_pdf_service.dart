@@ -1,6 +1,9 @@
 import 'dart:io';
 
 import 'package:path_provider/path_provider.dart';
+import 'package:printing/printing.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:cross_file/cross_file.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 
@@ -214,5 +217,26 @@ class ReportCardPdfService {
     await file.writeAsBytes(await pdf.save());
 
     return file;
+  }
+
+
+  static Future<void> printReportCard(ReportCard reportCard) async {
+    final file = await generatePdf(reportCard);
+    final bytes = await file.readAsBytes();
+    await Printing.layoutPdf(
+      onLayout: (format) async => bytes,
+      name: '${reportCard.studentName}_report_card',
+    );
+  }
+
+  static Future<void> shareReportCard(ReportCard reportCard) async {
+    final file = await generatePdf(reportCard);
+    await SharePlus.instance.share(
+      ShareParams(
+        files: [XFile(file.path)],
+        text:
+            'Report card — ${reportCard.studentName} (${reportCard.session} · ${reportCard.term})',
+      ),
+    );
   }
 }
