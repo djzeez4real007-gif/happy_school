@@ -54,8 +54,10 @@ class ReportCardPdfService {
     return '${name}_${cls}_$sess.pdf';
   }
 
-  static Future<Uint8List> buildPdfBytes(ReportCard rc) async {
-    final pdf = pw.Document();
+  static Future<void> appendReportCardPages(
+    pw.Document pdf,
+    ReportCard rc,
+  ) async {
     final logo = await _loadLogo();
     final passport = await _loadPassport(rc.passportPath);
 
@@ -271,8 +273,8 @@ class ReportCardPdfService {
                     children: [
                       kv('Admission No', rc.admissionNo),
                       kv('Position', '${rc.position}'),
-                      kv('Overall Grade', rc.overallGrade),
-                      kv('Promotion', rc.promotionLabel),
+                      kv('Overall Grade', rc.overallGrade.isEmpty ? rc.overallRemark : rc.overallGrade),
+                      kv('Promotion status', rc.promotionLabel),
                     ],
                   ),
                 ),
@@ -349,7 +351,7 @@ class ReportCardPdfService {
                         children: [
                           _sum('Total Score', rc.total.toStringAsFixed(1)),
                           _sum('Average Score', rc.average.toStringAsFixed(2)),
-                          _sum('Overall Grade', rc.overallGrade),
+                          _sum('Overall Grade', rc.overallGrade.isEmpty ? rc.overallRemark : rc.overallGrade),
                           _sum('Class Position', '${rc.position}'),
                           _sum('Subjects Offered', '${subjects.length}'),
                         ],
@@ -492,7 +494,33 @@ class ReportCardPdfService {
       ),
     );
 
+  }
+
+  static Future<Uint8List> buildPdfBytes(ReportCard rc) async {
+    final pdf = pw.Document();
+    await appendReportCardPages(pdf, rc);
     return pdf.save();
+  }
+
+  /// All students in one multipage PDF (one report after another).
+  static Future<Uint8List> buildAllPdfBytes(List<ReportCard> cards) async {
+    if (cards.isEmpty) {
+      throw Exception('No report cards to export');
+    }
+    final pdf = pw.Document();
+    for (final rc in cards) {
+      await appendReportCardPages(pdf, rc);
+    }
+    return pdf.save();
+  }
+
+  static String buildBulkFileName(List<ReportCard> cards) {
+    if (cards.isEmpty) return 'report_cards.pdf';
+    final c = cards.first;
+    final cls = _safeFilePart(c.className);
+    final sess = _safeFilePart(c.session);
+    final term = _safeFilePart(c.term);
+    return 'ReportCards_${cls}_${sess}_$term.pdf';
   }
 
   static pw.Widget _th(String text, {bool dark = false}) {
@@ -567,5 +595,21 @@ class ReportCardPdfService {
 
   static Future<void> generatePdf(ReportCard reportCard) async {
     await printReportCard(reportCard);
+  }
+
+  static Future<void> printAllReportCards(List<ReportCard> cards) async {
+    final bytes = await buildAllPdfBytes(cards);
+    await Printing.layoutPdf(
+      onLayout: (format) async => bytes,
+      name: buildBulkFileName(cards).replaceAll('.pdf', ''),
+    );
+  }
+
+  static Future<void> shareAllReportCards(List<ReportCard> cards) async {
+    final bytes = await buildAllPdfBytes(cards);
+    await Printing.sharePdf(
+      bytes: bytes,
+      filename: buildBulkFileName(cards),
+    );
   }
 }

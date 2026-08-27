@@ -110,12 +110,8 @@ class StudentPromotionService {
       term: '',
     );
 
-    if (existingAssignment != null &&
-        existingAssignment.className.trim().toLowerCase() ==
-            targetClass.toLowerCase()) {
-      // Already promoted to this class/session.
-      return;
-    }
+    // If already on this class in target session, still ensure record is fresh.
+    // (Do not return early without writing — older bugs left next session empty.)
 
     // --------------------------------------------------------
     // Get subjects belonging to the NEW CLASS.

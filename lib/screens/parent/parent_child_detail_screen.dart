@@ -36,6 +36,7 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
   StudentClass? studentClass;
   double totalFee = 0;
   double paid = 0;
+  double discount = 0;
   double balance = 0;
   bool feeConfigured = false;
   List<Result> results = [];
@@ -81,6 +82,7 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
 
     totalFee = 0;
     paid = 0;
+    discount = 0;
     balance = 0;
     feeConfigured = false;
     if (className.isNotEmpty &&
@@ -95,7 +97,12 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
           session: session,
           term: term,
         );
-        balance = totalFee - paid;
+        discount = await StudentFeePaymentStorage.totalDiscountForTerm(
+          student.admissionNo,
+          session: session,
+          term: term,
+        );
+        balance = totalFee - paid - discount;
       }
     }
 
@@ -451,6 +458,7 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
               children: [
                 Expanded(child: _feeCol('Total', money(totalFee))),
                 Expanded(child: _feeCol('Paid', money(paid))),
+                Expanded(child: _feeCol('Discount', money(discount))),
                 Expanded(child: _feeCol('Balance', money(balance))),
               ],
             ),

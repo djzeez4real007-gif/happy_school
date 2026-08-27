@@ -592,7 +592,31 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             padding: const EdgeInsets.all(16),
             child: Column(
               children: [
-                DropdownButtonFormField<SchoolClass>(
+                DropdownButtonFormField<String>(
+                  initialValue: selectedSession,
+                  decoration: const InputDecoration(
+                    labelText: "Session",
+                    border: OutlineInputBorder(),
+                    prefixIcon: Icon(Icons.calendar_month_outlined),
+                  ),
+                  items: sessions.map((session) {
+                    return DropdownMenuItem<String>(
+                      value: session,
+                      child: Text(session),
+                    );
+                  }).toList(),
+                  onChanged: (value) async {
+                    if (value == null) return;
+                    setState(() {
+                      selectedSession = value;
+                    });
+                    await loadStudents();
+                  },
+                ),
+
+                const SizedBox(height: 12),
+
+DropdownButtonFormField<SchoolClass>(
                   initialValue: selectedClass,
                   decoration: InputDecoration(
                     labelText: "Select Class",
@@ -628,69 +652,32 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                 const SizedBox(height: 12),
 
-                Row(
-                  children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: selectedSession,
-                        decoration: const InputDecoration(
-                          labelText: "Session",
-                          border: OutlineInputBorder(),
-                        ),
-                        items: sessions.map((session) {
-                          return DropdownMenuItem<String>(
-                            value: session,
-                            child: Text(session),
-                          );
-                        }).toList(),
-                        onChanged: (value) async {
-                          if (value == null) {
-                            return;
-                          }
+                const SizedBox(height: 12),
 
-                          setState(() {
-                            selectedSession = value;
-                          });
-
-                          await loadStudents();
-                        },
-                      ),
-                    ),
-
-                    const SizedBox(width: 10),
-
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        initialValue: selectedTerm,
-                        decoration: const InputDecoration(
-                          labelText: "Term",
-                          border: OutlineInputBorder(),
-                        ),
-                        items: terms.map((term) {
-                          return DropdownMenuItem<String>(
-                            value: term,
-                            child: Text(term),
-                          );
-                        }).toList(),
-                        onChanged: (value) async {
-                          if (value == null) {
-                            return;
-                          }
-
-                          setState(() {
-                            selectedTerm = value;
-                          });
-
-                          await loadStudents();
-                        },
-                      ),
-                    ),
-                  ],
+                DropdownButtonFormField<String>(
+                  initialValue: selectedTerm,
+                  decoration: const InputDecoration(
+                    labelText: "Term",
+                    border: OutlineInputBorder(),
+                  ),
+                  items: terms.map((term) {
+                    return DropdownMenuItem<String>(
+                      value: term,
+                      child: Text(term),
+                    );
+                  }).toList(),
+                  onChanged: (value) async {
+                    if (value == null) return;
+                    setState(() {
+                      selectedTerm = value;
+                    });
+                    await loadStudents();
+                  },
                 ),
 
                 const SizedBox(height: 12),
 
-                InkWell(
+InkWell(
                   onTap: selectDate,
                   borderRadius: BorderRadius.circular(8),
                   child: InputDecorator(

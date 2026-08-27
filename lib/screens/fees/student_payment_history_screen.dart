@@ -211,7 +211,18 @@ class _StudentPaymentHistoryScreenState
                                                   fontWeight: FontWeight.w800),
                                             ),
                                             subtitle: Text(
-                                              '${p.paymentDate}\n${p.paymentMethod} · Bal ₦${p.balance.toStringAsFixed(0)}',
+                                              [
+                                                if (p.session.trim().isNotEmpty ||
+                                                    p.term.trim().isNotEmpty)
+                                                  [
+                                                    if (p.session.trim().isNotEmpty)
+                                                      p.session.trim(),
+                                                    if (p.term.trim().isNotEmpty)
+                                                      p.term.trim(),
+                                                  ].join(' · '),
+                                                p.paymentDate,
+                                                '${p.paymentMethod} · Bal ₦${p.balance.toStringAsFixed(0)}',
+                                              ].join('\n'),
                                             ),
                                             isThreeLine: true,
                                             trailing: Text(

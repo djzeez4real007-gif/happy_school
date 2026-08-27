@@ -87,11 +87,17 @@ class FeesDashboardService {
           session: sess,
           term: trm,
         );
+        final discount = await StudentFeePaymentStorage.totalDiscountForTerm(
+          student.admissionNo,
+          session: sess,
+          term: trm,
+        );
 
         expected += fee.totalFee;
+        // Collected = money received only (never include discount)
         collected += paid > fee.totalFee ? fee.totalFee : paid;
 
-        final balance = fee.totalFee - paid;
+        final balance = fee.totalFee - paid - discount;
         if (balance > 0.01) {
           debtors++;
           outstanding += balance;

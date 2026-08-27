@@ -22,27 +22,33 @@ class StudentClassStorage {
   //
   // ==========================================================
 
+  static Box<Map> _box() => Hive.box<Map>(boxName);
+
+  static StudentClass _fromAny(dynamic raw) {
+    if (raw is Map) {
+      return StudentClass.fromMap(Map<String, dynamic>.from(raw));
+    }
+    return StudentClass(
+      admissionNo: '',
+      studentName: '',
+      className: '',
+      session: '',
+    );
+  }
+
+  /// Assignment identity = admissionNo + session (term is legacy only).
   static Future<void> assignStudent(StudentClass item) async {
-    final box = Hive.box<Map>(boxName);
+    final box = _box();
+    final adm = item.admissionNo.trim().toLowerCase();
+    final sess = item.session.trim().toLowerCase();
 
     for (int i = 0; i < box.length; i++) {
-      final raw = box.getAt(i);
-      if (raw == null) continue;
-
-      final existing = StudentClass.fromMap(Map<String, dynamic>.from(raw));
-
-      final sameStudent =
-          existing.admissionNo.trim().toLowerCase() ==
-          item.admissionNo.trim().toLowerCase();
-
-      final sameSession =
-          existing.session.trim().toLowerCase() ==
-          item.session.trim().toLowerCase();
-
-      final sameTerm =
-          existing.term.trim().toLowerCase() == item.term.trim().toLowerCase();
-
-      if (sameStudent && sameSession && sameTerm) {
+      final rawAt = box.getAt(i);
+      if (rawAt == null) continue;
+      final existing = _fromAny(rawAt);
+      final sameStudent = existing.admissionNo.trim().toLowerCase() == adm;
+      final sameSession = existing.session.trim().toLowerCase() == sess;
+      if (sameStudent && sameSession) {
         await box.putAt(i, item.toMap());
         await box.flush();
         return;
@@ -58,14 +64,14 @@ class StudentClassStorage {
   // ==========================================================
 
   static Future<List<StudentClass>> getStudents() async {
-    final box = Hive.box<Map>(boxName);
-
+    final box = _box();
     final List<StudentClass> students = [];
-
     for (final raw in box.values) {
-      students.add(StudentClass.fromMap(Map<String, dynamic>.from(raw)));
+      try {
+        final s = _fromAny(raw);
+        if (s.admissionNo.trim().isNotEmpty) students.add(s);
+      } catch (_) {}
     }
-
     return students;
   }
 
@@ -117,7 +123,7 @@ class StudentClassStorage {
   // ==========================================================
 
   static Future<void> updateStudent(int index, StudentClass item) async {
-    final box = Hive.box<Map>(boxName);
+    final box = _box();
 
     if (index < 0 || index >= box.length) {
       return;
@@ -160,7 +166,7 @@ class StudentClassStorage {
   // ==========================================================
 
   static Future<void> deleteStudent(int index) async {
-    final box = Hive.box<Map>(boxName);
+    final box = _box();
 
     if (index < 0 || index >= box.length) {
       return;
@@ -182,7 +188,7 @@ class StudentClassStorage {
   // ==========================================================
 
   static Future<StudentClass?> getStudent(String admissionNo) async {
-    final box = Hive.box<Map>(boxName);
+    final box = _box();
 
     final targetAdmission = admissionNo.trim().toLowerCase();
 
@@ -206,28 +212,24 @@ class StudentClassStorage {
     required String session,
     required String term,
   }) async {
-    final box = Hive.box<Map>(boxName);
-
+    // Prefer exact admission + session (ignore term — session-based placement).
     final targetAdmission = admissionNo.trim().toLowerCase();
     final targetSession = session.trim().toLowerCase();
-    final targetTerm = term.trim().toLowerCase();
+    StudentClass? sessionMatch;
 
-    for (final raw in box.values) {
-      final student = StudentClass.fromMap(Map<String, dynamic>.from(raw));
-
+    for (final student in await getStudents()) {
       final sameAdmission =
           student.admissionNo.trim().toLowerCase() == targetAdmission;
+      final sameSession =
+          student.session.trim().toLowerCase() == targetSession;
+      if (!sameAdmission || !sameSession) continue;
 
-      final sameSession = student.session.trim().toLowerCase() == targetSession;
-
-      final sameTerm = student.term.trim().toLowerCase() == targetTerm;
-
-      if (sameAdmission && sameSession && sameTerm) {
-        return student;
-      }
+      final sameTerm =
+          student.term.trim().toLowerCase() == term.trim().toLowerCase();
+      if (sameTerm) return student;
+      sessionMatch ??= student;
     }
-
-    return null;
+    return sessionMatch;
   }
 
   // ==========================================================
@@ -320,7 +322,7 @@ class StudentClassStorage {
   // ==========================================================
 
   static Future<int> getTotalAssignedStudents() async {
-    final box = Hive.box<Map>(boxName);
+    final box = _box();
 
     return box.length;
   }
@@ -334,7 +336,7 @@ class StudentClassStorage {
   // ==========================================================
 
   static Future<void> clearAllAssignments() async {
-    final box = Hive.box<Map>(boxName);
+    final box = _box();
 
     await box.clear();
     await box.flush();

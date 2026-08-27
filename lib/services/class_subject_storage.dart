@@ -3,6 +3,14 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/class_subject.dart';
 
 class ClassSubjectStorage {
+  static String _norm(String s) =>
+      s.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
+
+  static bool _sameClass(String a, String b) {
+    if (a.trim().toLowerCase() == b.trim().toLowerCase()) return true;
+    return _norm(a) == _norm(b);
+  }
+
   static const String boxName = "class_subjects";
 
   static Future<void> assignSubject(ClassSubject item) async {
@@ -33,7 +41,7 @@ class ClassSubjectStorage {
 
   static Future<List<ClassSubject>> getClassSubjects(String className) async {
     final assignments = await getAssignments();
-    return assignments.where((e) => e.className == className).toList();
+    return assignments.where((e) => _sameClass(e.className, className)).toList();
   }
 
   static Future<ClassSubject?> getAssignment({

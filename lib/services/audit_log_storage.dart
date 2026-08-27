@@ -6,6 +6,13 @@ import 'auth_service.dart';
 class AuditLogStorage {
   static const String boxName = 'audit_logs';
 
+  static const _ignoredActions = {
+    'login',
+    'logout',
+    'user_login',
+    'user_logout',
+  };
+
   static Future<Box> _box() async {
     if (Hive.isBoxOpen(boxName)) return Hive.box(boxName);
     return Hive.openBox(boxName);
@@ -16,7 +23,12 @@ class AuditLogStorage {
     required String module,
     required String description,
     String? refId,
+    String? session,
+    String? term,
   }) async {
+    final a = action.trim().toLowerCase();
+    if (_ignoredActions.contains(a)) return;
+
     final user = AuthService.currentUser;
     final entry = AuditLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
@@ -28,6 +40,8 @@ class AuditLogStorage {
       userRole: user?.role ?? '',
       timestamp: DateTime.now().toIso8601String(),
       refId: refId,
+      session: session,
+      term: term,
     );
     final box = await _box();
     await box.add(entry.toMap());
@@ -37,6 +51,7 @@ class AuditLogStorage {
     final box = await _box();
     final list = box.values
         .map((e) => AuditLog.fromMap(Map<String, dynamic>.from(e as Map)))
+        .where((e) => !_ignoredActions.contains(e.action.trim().toLowerCase()))
         .toList();
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return list;

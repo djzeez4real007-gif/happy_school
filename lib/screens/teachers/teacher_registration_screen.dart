@@ -34,6 +34,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
   String gender = 'Male';
   String qualification = 'B.Ed';
   String department = 'Science';
+  String employmentType = 'Full-time';
   bool saving = false;
 
   File? passportImage;
@@ -67,6 +68,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       gender = t.gender;
       qualification = t.qualification;
       department = t.department;
+      employmentType = t.employmentType.isNotEmpty ? t.employmentType : 'Full-time';
     }
   }
 
@@ -107,6 +109,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
       qualification: qualification,
       department: department,
       passport: passportImage?.path ?? '',
+      employmentType: employmentType,
     );
     try {
       if (isEdit) {
@@ -280,6 +283,23 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => department = v);
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: employmentType,
+                  decoration: const InputDecoration(
+                    labelText: 'Employment type',
+                    prefixIcon: Icon(Icons.work_outline_rounded),
+                  ),
+                  items: const [
+                    DropdownMenuItem(
+                        value: 'Full-time', child: Text('Full-time')),
+                    DropdownMenuItem(
+                        value: 'Part-time', child: Text('Part-time')),
+                  ],
+                  onChanged: (v) {
+                    if (v != null) setState(() => employmentType = v);
                   },
                 ),
                 const SizedBox(height: 20),

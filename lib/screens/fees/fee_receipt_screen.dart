@@ -118,6 +118,8 @@ class FeeReceiptScreen extends StatelessWidget {
                 ),
 
                 row("AMOUNT PAID", "₦${payment.amountPaid.toStringAsFixed(0)}"),
+                if (payment.discountAmount > 0.01)
+                  row("DISCOUNT", "₦${payment.discountAmount.toStringAsFixed(0)}"),
 
                 row("BALANCE", "₦${payment.balance.toStringAsFixed(0)}"),
 

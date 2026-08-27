@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 import '../../widgets/app_shell.dart';
 import '../auth/login_screen.dart';
+import '../welcome/school_welcome_screen.dart' show SchoolWelcomeScreen;
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -119,8 +120,9 @@ class _SplashScreenState extends State<SplashScreen>
   void _goNext() {
     if (!mounted) return;
 
-    final next =
-        AuthService.isLoggedIn ? const AppShell() : const LoginScreen();
+    final next = AuthService.isLoggedIn
+        ? const AppShell()
+        : const SchoolWelcomeScreen();
 
     Navigator.pushReplacement(
       context,

@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 
 import '../models/app_user.dart';
 import 'user_storage.dart';
+import 'student_portal_storage.dart';
+import 'student_storage.dart';
 import 'audit_log_storage.dart';
 
 class AuthService {
@@ -30,11 +32,41 @@ class AuthService {
     final userId = box.get('userId')?.toString();
     if (userId == null || userId.isEmpty) return;
 
-    final user = await UserStorage.getById(userId);
-    if (user != null && user.isActive) {
-      _currentUser = user;
+    final loginType = box.get('loginType')?.toString() ?? 'staff';
+    if (loginType == 'student' || userId.startsWith('student_')) {
+      final adm = box.get('studentAdmissionNo')?.toString() ??
+          userId.replaceFirst('student_', '');
+      final portal = await StudentPortalStorage.getByAdmission(adm);
+      if (portal != null && portal.isActive) {
+        String fullName = portal.fullName;
+        try {
+          final students = await StudentStorage.getStudents();
+          final match = students.where(
+            (s) =>
+                s.admissionNo.trim().toLowerCase() ==
+                adm.trim().toLowerCase(),
+          );
+          if (match.isNotEmpty) fullName = match.first.fullName;
+        } catch (_) {}
+        _currentUser = AppUser(
+          id: 'student_$adm',
+          fullName: fullName.isNotEmpty ? fullName : adm,
+          username: adm,
+          passwordHash: portal.passwordHash,
+          role: 'student',
+          isActive: true,
+          linkedAdmissionNos: adm,
+        );
+      } else {
+        await box.clear();
+      }
     } else {
-      await box.clear();
+      final user = await UserStorage.getById(userId);
+      if (user != null && user.isActive) {
+        _currentUser = user;
+      } else {
+        await box.clear();
+      }
     }
   }
 
@@ -62,49 +94,63 @@ class AuthService {
   }) async {
     final user = await UserStorage.getByUsernameExact(username.trim());
 
-    if (user == null) {
+    if (user != null) {
+      if (!user.isActive) {
+        throw Exception('This account has been disabled');
+      }
+      final hash = hashPassword(password);
+      if (hash != user.passwordHash) {
+        throw Exception('Invalid username or password');
+      }
+      _currentUser = user;
+      final box = Hive.box(_sessionBoxName);
+      await box.put('userId', user.id);
+      await box.put('loginType', 'staff');
+      return user;
+    }
+
+    // Student portal: username = admission number
+    final portal = await StudentPortalStorage.getByAdmission(username.trim());
+    if (portal == null) {
       throw Exception('Invalid username or password');
     }
-
-    if (!user.isActive) {
-      throw Exception('This account has been disabled');
+    if (!portal.isActive) {
+      throw Exception('This student portal account has been disabled');
     }
-
     final hash = hashPassword(password);
-    if (hash != user.passwordHash) {
+    if (hash != portal.passwordHash) {
       throw Exception('Invalid username or password');
     }
 
-    _currentUser = user;
-
-    final box = Hive.box(_sessionBoxName);
-    await box.put('userId', user.id);
-
+    String fullName = portal.fullName;
     try {
-      await AuditLogStorage.log(
-        action: 'login',
-        module: 'auth',
-        description: '${user.fullName} logged in as ${user.role}',
-        refId: user.username,
+      final students = await StudentStorage.getStudents();
+      final match = students.where(
+        (s) =>
+            s.admissionNo.trim().toLowerCase() ==
+            portal.admissionNo.trim().toLowerCase(),
       );
+      if (match.isNotEmpty) fullName = match.first.fullName;
     } catch (_) {}
 
-    return user;
+    final studentUser = AppUser(
+      id: 'student_${portal.admissionNo}',
+      fullName: fullName.isNotEmpty ? fullName : portal.admissionNo,
+      username: portal.admissionNo,
+      passwordHash: portal.passwordHash,
+      role: 'student',
+      isActive: true,
+      linkedAdmissionNos: portal.admissionNo,
+    );
+    _currentUser = studentUser;
+    final box = Hive.box(_sessionBoxName);
+    await box.put('userId', studentUser.id);
+    await box.put('loginType', 'student');
+    await box.put('studentAdmissionNo', portal.admissionNo);
+    return studentUser;
   }
 
   static Future<void> logout() async {
-    try {
-      final u = _currentUser;
-      if (u != null) {
-        await AuditLogStorage.log(
-          action: 'logout',
-          module: 'auth',
-          description: '${u.fullName} logged out',
-          refId: u.username,
-        );
-      }
-    } catch (_) {}
-
     _currentUser = null;
     if (Hive.isBoxOpen(_sessionBoxName)) {
       await Hive.box(_sessionBoxName).clear();

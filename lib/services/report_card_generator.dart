@@ -41,33 +41,22 @@ class ReportCardGenerator {
 
     final double average = results.isEmpty ? 0.0 : totalScore / results.length;
 
-    String overallGrade = "F9";
+    // Overall grade band for parents (not A1–F9 codes)
+    String overallGrade = "Fail";
     String overallRemark = "Fail";
 
-    if (average >= 75) {
-      overallGrade = "A1";
+    if (average >= 70) {
+      overallGrade = "Distinction";
       overallRemark = "Excellent";
-    } else if (average >= 70) {
-      overallGrade = "B2";
-      overallRemark = "Very Good";
-    } else if (average >= 65) {
-      overallGrade = "B3";
-      overallRemark = "Very Good";
-    } else if (average >= 60) {
-      overallGrade = "C4";
-      overallRemark = "Credit";
-    } else if (average >= 55) {
-      overallGrade = "C5";
-      overallRemark = "Credit";
     } else if (average >= 50) {
-      overallGrade = "C6";
+      overallGrade = "Credit";
       overallRemark = "Credit";
-    } else if (average >= 45) {
-      overallGrade = "D7";
-      overallRemark = "Pass";
     } else if (average >= 40) {
-      overallGrade = "E8";
+      overallGrade = "Pass";
       overallRemark = "Pass";
+    } else {
+      overallGrade = "Fail";
+      overallRemark = "Fail";
     }
 
     final reportCard = ReportCard(

@@ -36,8 +36,16 @@ class _StudentListScreenState extends State<StudentListScreen> {
 
   Future<void> loadStudents() async {
     setState(() => loading = true);
-    students = await StudentStorage.getStudents();
-    assignedStudents = await StudentClassStorage.getStudents();
+    try {
+      students = await StudentStorage.getStudents();
+    } catch (_) {
+      students = [];
+    }
+    try {
+      assignedStudents = await StudentClassStorage.getStudents();
+    } catch (_) {
+      assignedStudents = [];
+    }
 
     if (!mounted) return;
     setState(() {

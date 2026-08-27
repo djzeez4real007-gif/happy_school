@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../../models/school_class.dart';
-
 import '../../services/class_storage.dart';
 import '../../services/class_subject_storage.dart';
-
 import 'class_subject_assignment_screen.dart';
 
 class ClassSubjectDashboardScreen extends StatefulWidget {
@@ -27,89 +25,79 @@ class _ClassSubjectDashboardScreenState
 
   Future<void> loadClasses() async {
     classes = await ClassStorage.getClasses();
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   Future<List<String>> getSubjects(String className) async {
     final subjects = await ClassSubjectStorage.getClassSubjects(className);
-
     return subjects.map((e) => e.subjectName).toList();
+  }
+
+  Future<void> openAssign({String? className}) async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ClassSubjectAssignmentScreen(
+          initialClassName: className,
+        ),
+      ),
+    );
+    if (!mounted) return;
+    await loadClasses();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Subject Assignment")),
-
+      appBar: AppBar(title: const Text('Subject Assignment')),
       floatingActionButton: FloatingActionButton.extended(
         icon: const Icon(Icons.add),
-        label: const Text("Assign"),
-        onPressed: () async {
-          await Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => const ClassSubjectAssignmentScreen(),
-            ),
-          );
-
-          loadClasses();
-        },
+        label: const Text('Assign'),
+        onPressed: () => openAssign(),
       ),
-
       body: ListView.builder(
         itemCount: classes.length,
-
         itemBuilder: (_, index) {
           final schoolClass = classes[index];
 
           return FutureBuilder<List<String>>(
             future: getSubjects(schoolClass.fullClassName),
-
             builder: (_, snapshot) {
               final subjectNames = snapshot.data ?? [];
-
               final count = subjectNames.length;
 
               Color color = Colors.red;
-              String status = "Not Assigned";
-
+              String status = 'Not Assigned';
               if (count > 0) {
                 color = Colors.orange;
-                status = "Incomplete";
+                status = 'Incomplete';
               }
-
               if (count >= 10) {
                 color = Colors.green;
-                status = "Complete";
+                status = 'Complete';
               }
 
               return Card(
                 margin: const EdgeInsets.all(10),
-
                 child: ListTile(
+                  onTap: () => openAssign(className: schoolClass.fullClassName),
                   leading: CircleAvatar(
                     backgroundColor: color.withValues(alpha: 0.2),
                     child: Icon(Icons.class_, color: color),
                   ),
-
                   title: Text(
                     schoolClass.fullClassName,
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
-
                   subtitle: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-
                     children: [
-                      Text("Teacher: ${schoolClass.classTeacher}"),
-
+                      Text('Teacher: ${schoolClass.classTeacher}'),
                       Text(
-                        "Subjects Assigned: $count",
+                        'Subjects Assigned: $count',
                         style: const TextStyle(fontWeight: FontWeight.bold),
                       ),
-
                       const SizedBox(height: 6),
-
                       Wrap(
                         spacing: 6,
                         runSpacing: 6,
@@ -120,20 +108,16 @@ class _ClassSubjectDashboardScreenState
                           );
                         }).toList(),
                       ),
-
                       const SizedBox(height: 5),
-
                       Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 4,
                         ),
-
                         decoration: BoxDecoration(
                           color: color.withValues(alpha: 0.2),
                           borderRadius: BorderRadius.circular(20),
                         ),
-
                         child: Text(
                           status,
                           style: TextStyle(
@@ -144,8 +128,12 @@ class _ClassSubjectDashboardScreenState
                       ),
                     ],
                   ),
-
-                  trailing: const Icon(Icons.edit),
+                  trailing: IconButton(
+                    tooltip: 'Edit subjects',
+                    icon: const Icon(Icons.edit),
+                    onPressed: () =>
+                        openAssign(className: schoolClass.fullClassName),
+                  ),
                 ),
               );
             },

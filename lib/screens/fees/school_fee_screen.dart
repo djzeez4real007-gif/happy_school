@@ -1,3 +1,5 @@
+import '../../core/permissions.dart';
+import '../../services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -115,6 +117,17 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
       double.tryParse(c.text.trim()) ?? 0;
 
   Future<void> saveFee() async {
+    if (!Permissions.canEditFees(AuthService.currentRole)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Principal can view fees only. Editing is not allowed.'),
+          ),
+        );
+      }
+      return;
+    }
+
     if (selectedClassName == null) {
       PremiumFeedback.info(context, title: 'Select a class first');
       return;
@@ -312,7 +325,7 @@ class _SchoolFeeScreenState extends State<SchoolFeeScreen> {
                 label: applyToAllTerms
                     ? 'SAVE FOR ALL TERMS'
                     : 'SAVE SCHOOL FEE',
-                onPressed: saveFee,
+                onPressed: Permissions.canEditFees(AuthService.currentRole) ? saveFee : null,
                 loading: saving,
                 icon: Icons.save_rounded,
               ),

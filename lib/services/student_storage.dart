@@ -22,10 +22,13 @@ class StudentStorage {
 
   static Future<List<Student>> getStudents() async {
     final box = Hive.box<Map>(boxName);
-
-    return box.values.map((e) {
-      return Student.fromMap(Map<String, dynamic>.from(e));
-    }).toList();
+    final list = <Student>[];
+    for (final e in box.values) {
+      try {
+        list.add(Student.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {}
+    }
+    return list;
   }
 
   // ==========================================================

@@ -306,6 +306,9 @@ class ReceiptPdfService {
                               bold: true,
                             ),
                             feeRow('Amount Paid', payment.amountPaid, bold: true),
+                            if (payment.discountAmount > 0.01)
+                              feeRow('Discount', payment.discountAmount),
+
                             feeRow('Balance', payment.balance, bold: true),
                           ],
                         ),

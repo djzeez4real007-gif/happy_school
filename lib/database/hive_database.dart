@@ -46,9 +46,16 @@ class HiveDatabase {
     // Audit log
     await Hive.openBox('audit_logs');
 
+    await Hive.openBox('non_teaching_staff');
+
+    await Hive.openBox('welcome_media');
+    await Hive.openBox('welcome_images');
+    await Hive.openBox('teacher_subjects');
+
     // Timetable
     await Hive.openBox<Map>('timetables');
     await Hive.openBox('timetable_settings');
+    await Hive.openBox('student_portal');
 
     await SubjectStorage.seedDefaultSubjects();
 

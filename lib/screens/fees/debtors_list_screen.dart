@@ -68,8 +68,12 @@ class _DebtorsListScreenState extends State<DebtorsListScreen> {
           session: selectedSession,
           term: selectedTerm,
         );
-
-        final balance = schoolFee.totalFee - paid;
+        final discount = await StudentFeePaymentStorage.totalDiscountForTerm(
+          student.admissionNo,
+          session: selectedSession,
+          term: selectedTerm,
+        );
+        final balance = schoolFee.totalFee - paid - discount;
         if (balance > 0.01) {
           list.add({
             'student': student,

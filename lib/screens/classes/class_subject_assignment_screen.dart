@@ -8,12 +8,13 @@ import '../../models/school_class.dart';
 import '../../models/subject.dart';
 import '../../services/class_storage.dart';
 import '../../services/class_subject_storage.dart';
-import '../../services/teacher_storage.dart';
-import '../../models/teacher.dart';
 import '../../services/subject_storage.dart';
 
 class ClassSubjectAssignmentScreen extends StatefulWidget {
-  const ClassSubjectAssignmentScreen({super.key});
+  /// When set, opens already on this class (edit from dashboard).
+  final String? initialClassName;
+
+  const ClassSubjectAssignmentScreen({super.key, this.initialClassName});
 
   @override
   State<ClassSubjectAssignmentScreen> createState() =>
@@ -26,8 +27,6 @@ class _ClassSubjectAssignmentScreenState
   List<Subject> subjects = [];
   SchoolClass? selectedClass;
   final Set<String> selectedSubjects = {};
-  List<Teacher> teachers = [];
-  String? selectedTeacherId;
   bool saving = false;
   bool loading = true;
 
@@ -40,9 +39,27 @@ class _ClassSubjectAssignmentScreenState
   Future<void> loadData() async {
     classes = await ClassStorage.getClasses();
     subjects = await SubjectStorage.getSubjects();
-    teachers = await TeacherStorage.getTeachers();
+
+    final initial = widget.initialClassName?.trim();
+    if (initial != null && initial.isNotEmpty) {
+      try {
+        selectedClass = classes.firstWhere(
+          (c) => c.fullClassName.trim().toLowerCase() == initial.toLowerCase(),
+        );
+      } catch (_) {
+        try {
+          selectedClass = classes.firstWhere(
+            (c) => c.fullClassName.trim().toLowerCase().contains(initial.toLowerCase()),
+          );
+        } catch (_) {}
+      }
+    }
+
     if (!mounted) return;
     setState(() => loading = false);
+    if (selectedClass != null) {
+      await loadAssignedSubjects();
+    }
   }
 
   Future<void> loadAssignedSubjects() async {
@@ -71,7 +88,7 @@ class _ClassSubjectAssignmentScreenState
             className: selectedClass!.fullClassName,
             subjectCode: subject.subjectCode,
             subjectName: subject.subjectName,
-            teacherId: selectedTeacherId ?? '',
+            teacherId: '',
           ),
         );
       }
@@ -109,7 +126,7 @@ class _ClassSubjectAssignmentScreenState
                       PremiumForm.header(
                         context,
                         title: 'Assign Subjects',
-                        subtitle: 'Link subjects to a class',
+                        subtitle: 'Choose which subjects this class offers',
                         icon: Icons.assignment_rounded,
                         gradient: const [Color(0xFF5B21B6), Color(0xFF8B5CF6)],
                       ),
@@ -117,26 +134,6 @@ class _ClassSubjectAssignmentScreenState
                       PremiumForm.card(
                         context,
                         children: [
-                          DropdownButtonFormField<String>(
-                            value: selectedTeacherId,
-                            isExpanded: true,
-                            decoration: const InputDecoration(
-                              labelText: 'Subject teacher (optional)',
-                              helperText: 'Links subjects to a staff ID for result entry',
-                              prefixIcon: Icon(Icons.person_outline),
-                            ),
-                            items: [
-                              const DropdownMenuItem(value: null, child: Text('— None —')),
-                              ...teachers.map(
-                                (t) => DropdownMenuItem(
-                                  value: t.staffId,
-                                  child: Text('${t.fullName} (${t.staffId})'),
-                                ),
-                              ),
-                            ],
-                            onChanged: (v) => setState(() => selectedTeacherId = v),
-                          ),
-                          const SizedBox(height: 12),
                           DropdownButtonFormField<SchoolClass>(
                             value: selectedClass,
                             isExpanded: true,

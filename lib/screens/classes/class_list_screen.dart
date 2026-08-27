@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
-
+import '../../core/utils/sessions.dart';
 import '../../services/class_storage.dart';
 import '../../services/student_class_storage.dart';
 import 'class_registration_screen.dart';
@@ -18,12 +18,18 @@ class _ClassListScreenState extends State<ClassListScreen> {
   List _assignments = [];
   bool loading = true;
 
-  
+  late String selectedSession;
+  final List<String> sessions = Sessions.list();
+
   static const Color _primary = Color(0xFF1D4ED8);
 
   @override
   void initState() {
     super.initState();
+    selectedSession = Sessions.current();
+    if (!sessions.contains(selectedSession)) {
+      selectedSession = sessions.isNotEmpty ? sessions.first : '2026/2027';
+    }
     loadClasses();
   }
 
@@ -45,24 +51,40 @@ class _ClassListScreenState extends State<ClassListScreen> {
     return value.trim().toUpperCase().replaceAll(RegExp(r'[\s\-_]+'), '');
   }
 
+  /// Count students in this class **for the selected session only**.
   int enrolledCount(dynamic schoolClass) {
     final full = schoolClass.fullClassName.trim().toLowerCase();
     final fullNorm = _normalize(schoolClass.fullClassName);
     final baseNorm = _normalize(schoolClass.className.toString());
+    final sessionNorm = selectedSession.trim().toLowerCase();
 
     final unique = <String>{};
     for (final a in _assignments) {
+      final aSession = (a.session ?? '').toString().trim().toLowerCase();
+      if (aSession != sessionNorm) continue;
+
       final assignedClass = a.className.trim().toLowerCase();
       final assignedNorm = _normalize(a.className);
+
+      // Skip non-class placements
+      if (assignedClass == 'left' ||
+          assignedClass == 'graduated' ||
+          assignedClass == 'withdrawn') {
+        continue;
+      }
 
       final matches = assignedClass == full ||
           assignedNorm == fullNorm ||
           assignedNorm == baseNorm ||
           fullNorm.startsWith(assignedNorm) ||
-          assignedNorm.startsWith(baseNorm);
+          assignedNorm.startsWith(baseNorm) ||
+          // e.g. assigned "JSS2" vs class "JSS2 A"
+          fullNorm.startsWith(baseNorm) && assignedNorm.startsWith(baseNorm) &&
+              (fullNorm.contains(assignedNorm) || assignedNorm.contains(baseNorm));
 
       if (matches) {
-        unique.add(a.admissionNo.trim().toLowerCase());
+        final adm = a.admissionNo.trim().toLowerCase();
+        if (adm.isNotEmpty) unique.add(adm);
       }
     }
     return unique.length;
@@ -94,7 +116,8 @@ class _ClassListScreenState extends State<ClassListScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Delete Class'),
           content: Text('Delete ${schoolClass.fullClassName}?'),
           actions: [
@@ -136,166 +159,238 @@ class _ClassListScreenState extends State<ClassListScreen> {
         icon: const Icon(Icons.add_rounded),
         label: const Text('Add Class'),
       ),
-      body: loading
-          ? const Center(child: CircularProgressIndicator())
-          : classes.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(Icons.class_outlined, size: 56, color: Colors.grey.shade400),
-                      const SizedBox(height: 12),
-                      Text(
-                        'No classes yet',
-                        style: TextStyle(
-                          color: Colors.grey.shade600,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                  itemCount: classes.length,
-                  itemBuilder: (context, index) {
-                    final schoolClass = classes[index];
-                    final count = enrolledCount(schoolClass);
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.035),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+      body: Column(
+        children: [
+          // Session filter
+          Container(
+            width: double.infinity,
+            color: _primary,
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: sessions.contains(selectedSession)
+                      ? selectedSession
+                      : null,
+                  isExpanded: true,
+                  hint: const Text('Academic session'),
+                  icon: const Icon(Icons.arrow_drop_down_rounded),
+                  items: sessions
+                      .map(
+                        (s) => DropdownMenuItem(
+                          value: s,
+                          child: Text(
+                            s,
+                            style: const TextStyle(fontWeight: FontWeight.w600),
                           ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => editClass(schoolClass, index),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: 52,
-                                  height: 52,
-                                  decoration: BoxDecoration(
-                                    gradient: const LinearGradient(
-                                      colors: [
-                                        Color(0xFFD97706),
-                                        Color(0xFFFBBF24),
-                                      ],
-                                    ),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(
-                                    Icons.class_rounded,
-                                    color: Colors.white,
-                                  ),
+                        ),
+                      )
+                      .toList(),
+                  onChanged: (v) {
+                    if (v == null) return;
+                    setState(() => selectedSession = v);
+                  },
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                'Showing enrolment for $selectedSession',
+                style: TextStyle(
+                  fontSize: 12.5,
+                  color: Colors.grey.shade600,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+          Expanded(
+            child: loading
+                ? const Center(child: CircularProgressIndicator())
+                : classes.isEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.class_outlined,
+                                size: 56, color: Colors.grey.shade400),
+                            const SizedBox(height: 12),
+                            Text(
+                              'No classes yet',
+                              style: TextStyle(
+                                color: Colors.grey.shade600,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 12, 16, 88),
+                        itemCount: classes.length,
+                        itemBuilder: (context, index) {
+                          final schoolClass = classes[index];
+                          final count = enrolledCount(schoolClass);
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.03),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
                                 ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                              ],
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () => editClass(schoolClass, index),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 12,
+                                    vertical: 12,
+                                  ),
+                                  child: Row(
                                     children: [
-                                      Text(
-                                        schoolClass.fullClassName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w800,
-                                          fontSize: 16,
-                                          color: Color(0xFF0F172A),
+                                      Container(
+                                        width: 48,
+                                        height: 48,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF59E0B),
+                                          borderRadius:
+                                              BorderRadius.circular(12),
+                                        ),
+                                        child: const Icon(
+                                          Icons.class_rounded,
+                                          color: Colors.white,
                                         ),
                                       ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        schoolClass.classTeacher.isEmpty
-                                            ? 'No class teacher'
-                                            : schoolClass.classTeacher,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Row(
-                                        children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFEFF6FF),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: Text(
-                                              '$count students',
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              schoolClass.fullClassName,
                                               style: const TextStyle(
-                                                fontSize: 11.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: Color(0xFF1D4ED8),
+                                                fontWeight: FontWeight.w800,
+                                                fontSize: 15,
                                               ),
                                             ),
-                                          ),
-                                          const SizedBox(width: 6),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(
-                                              horizontal: 10,
-                                              vertical: 3,
-                                            ),
-                                            decoration: BoxDecoration(
-                                              color: const Color(0xFFF0FDF4),
-                                              borderRadius:
-                                                  BorderRadius.circular(20),
-                                            ),
-                                            child: const Text(
-                                              'Active',
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              schoolClass.classTeacher
+                                                      .toString()
+                                                      .isEmpty
+                                                  ? 'No class teacher'
+                                                  : schoolClass.classTeacher
+                                                      .toString(),
                                               style: TextStyle(
-                                                fontSize: 11.5,
-                                                fontWeight: FontWeight.w700,
-                                                color: Color(0xFF15803D),
+                                                fontSize: 12.5,
+                                                color: Colors.grey.shade600,
                                               ),
                                             ),
-                                          ),
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              children: [
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 3,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        const Color(0xFFDBEAFE),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                  ),
+                                                  child: Text(
+                                                    '$count student${count == 1 ? '' : 's'}',
+                                                    style: const TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Color(0xFF1D4ED8),
+                                                    ),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Container(
+                                                  padding:
+                                                      const EdgeInsets.symmetric(
+                                                    horizontal: 10,
+                                                    vertical: 3,
+                                                  ),
+                                                  decoration: BoxDecoration(
+                                                    color:
+                                                        const Color(0xFFDCFCE7),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            20),
+                                                  ),
+                                                  child: const Text(
+                                                    'Active',
+                                                    style: TextStyle(
+                                                      fontSize: 11.5,
+                                                      fontWeight:
+                                                          FontWeight.w700,
+                                                      color: Color(0xFF15803D),
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      PopupMenuButton<String>(
+                                        onSelected: (value) async {
+                                          if (value == 'edit') {
+                                            await editClass(
+                                                schoolClass, index);
+                                          } else if (value == 'delete') {
+                                            await deleteClass(
+                                                schoolClass, index);
+                                          }
+                                        },
+                                        itemBuilder: (_) => const [
+                                          PopupMenuItem(
+                                              value: 'edit',
+                                              child: Text('Edit')),
+                                          PopupMenuItem(
+                                              value: 'delete',
+                                              child: Text('Delete')),
                                         ],
                                       ),
                                     ],
                                   ),
                                 ),
-                                PopupMenuButton<String>(
-                                  onSelected: (value) async {
-                                    if (value == 'edit') {
-                                      await editClass(schoolClass, index);
-                                    } else if (value == 'delete') {
-                                      await deleteClass(schoolClass, index);
-                                    }
-                                  },
-                                  itemBuilder: (_) => const [
-                                    PopupMenuItem(
-                                        value: 'edit', child: Text('Edit')),
-                                    PopupMenuItem(
-                                        value: 'delete', child: Text('Delete')),
-                                  ],
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+          ),
+        ],
+      ),
     );
   }
 }

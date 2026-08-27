@@ -14,17 +14,23 @@ import '../screens/report_card/generate_report_card_screen.dart';
 import '../screens/results/broadsheet_screen.dart';
 import '../screens/results/class_term_averages_screen.dart';
 import '../screens/results/result_entry_screen.dart';
-import '../screens/students/student_menu_screen.dart';
 import '../screens/students/alumni_list_screen.dart';
 import '../screens/subjects/subject_list_screen.dart';
-import '../screens/teachers/teacher_list_screen.dart';
-import '../screens/timetable/timetable_screen.dart';
+import '../screens/timetable/timetable_hub_screen.dart';
 import '../screens/users/user_list_screen.dart';
 import '../screens/parent/parent_portal_screen.dart';
 import '../screens/audit/audit_log_screen.dart';
+import '../screens/media/media_settings_screen.dart';
+import '../screens/teachers/my_teaching_screen.dart';
+import '../screens/student_portal/student_portal_home_screen.dart';
+import '../screens/student_portal/student_portal_admin_screen.dart';
+import '../screens/student_portal/student_results_screen.dart';
+import '../screens/timetable/timetable_screen.dart';
+import '../screens/teachers/assign_teacher_subjects_screen.dart';
 import '../services/auth_service.dart';
 import '../core/theme/theme_controller.dart';
 import '../core/widgets/premium_feedback.dart';
+import '../screens/register/register_hub_screen.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({super.key});
@@ -49,15 +55,32 @@ class _NavItem {
   });
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin {
   static const Color primaryBlue = Color(0xFF1D4ED8);
   static const Color sidebarBg = Color(0xFF0F172A);
   static const double sidebarWidth = 260;
 
   int _selectedIndex = 0;
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  late final AnimationController _menuAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _menuAnim = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat(reverse: true);
+  }
+
+  @override
+  void dispose() {
+    _menuAnim.dispose();
+    super.dispose();
+  }
 
   static const List<_NavItem> _allItems = [
+    // ── MAIN ──────────────────────────────────────────
     _NavItem(
       key: Permissions.dashboard,
       label: 'Dashboard',
@@ -66,42 +89,92 @@ class _AppShellState extends State<AppShell> {
       section: 'MAIN',
     ),
     _NavItem(
+      key: Permissions.myTeaching,
+      label: 'My Teaching',
+      icon: Icons.school_rounded,
+      page: MyTeachingScreen(),
+      section: 'MAIN',
+    ),
+
+    // ── STUDENT PORTAL ────────────────────────────────
+    _NavItem(
+      key: Permissions.studentPortal,
+      label: 'Student home',
+      icon: Icons.person_rounded,
+      page: StudentPortalHomeScreen(),
+      section: 'STUDENT',
+    ),
+    _NavItem(
+      key: Permissions.studentPortal,
+      label: 'My results',
+      icon: Icons.assessment_rounded,
+      page: StudentResultsScreen(),
+      section: 'STUDENT',
+    ),
+    _NavItem(
+      key: Permissions.studentPortal,
+      label: 'Class timetable',
+      icon: Icons.calendar_view_week_rounded,
+      page: TimetableScreen(),
+      section: 'STUDENT',
+    ),
+
+    // ── PARENT ────────────────────────────────────────
+    _NavItem(
+      key: Permissions.parentPortal,
+      label: 'My Children',
+      icon: Icons.family_restroom_rounded,
+      page: ParentPortalScreen(),
+      section: 'PARENT',
+    ),
+
+    // ── REGISTER ──────────────────────────────────────
+    _NavItem(
       key: Permissions.students,
-      label: 'Students',
-      icon: Icons.people_alt_rounded,
-      page: StudentMenuScreen(),
-      section: 'ACADEMICS',
+      label: 'Register',
+      icon: Icons.app_registration_rounded,
+      page: RegisterHubScreen(),
+      section: 'REGISTER',
     ),
-        _NavItem(
-      key: Permissions.alumni,
-      icon: Icons.workspace_premium_rounded,
-      label: 'Alumni',
-      page: AlumniListScreen(),
-    ),
-_NavItem(
-      key: Permissions.teachers,
-      label: 'Teachers',
-      icon: Icons.badge_rounded,
-      page: TeacherListScreen(),
-    ),
+
+    // ── ACADEMICS ─────────────────────────────────────
     _NavItem(
       key: Permissions.classes,
       label: 'Classes',
       icon: Icons.class_rounded,
       page: ClassListScreen(),
+      section: 'ACADEMICS',
     ),
     _NavItem(
       key: Permissions.subjects,
       label: 'Subjects',
       icon: Icons.menu_book_rounded,
       page: SubjectListScreen(),
+      section: 'ACADEMICS',
     ),
     _NavItem(
       key: Permissions.assignSubjects,
-      label: 'Assign Subjects',
+      label: 'Assign subjects to class',
       icon: Icons.assignment_rounded,
       page: ClassSubjectDashboardScreen(),
+      section: 'ACADEMICS',
     ),
+    _NavItem(
+      key: Permissions.assignTeacherSubjects,
+      label: 'Assign subjects to teacher',
+      icon: Icons.assignment_ind_rounded,
+      page: AssignTeacherSubjectsScreen(),
+      section: 'ACADEMICS',
+    ),
+    _NavItem(
+      key: Permissions.alumni,
+      label: 'Alumni',
+      icon: Icons.workspace_premium_rounded,
+      page: AlumniListScreen(),
+      section: 'ACADEMICS',
+    ),
+
+    // ── RESULTS ───────────────────────────────────────
     _NavItem(
       key: Permissions.resultEntry,
       label: 'Result Entry',
@@ -114,25 +187,31 @@ _NavItem(
       label: 'Broadsheet',
       icon: Icons.table_chart_rounded,
       page: BroadsheetScreen(),
+      section: 'RESULTS',
     ),
-        _NavItem(
+    _NavItem(
       key: Permissions.classAverages,
-      icon: Icons.insights_rounded,
       label: 'Term Averages',
+      icon: Icons.insights_rounded,
       page: ClassTermAveragesScreen(),
+      section: 'RESULTS',
     ),
-_NavItem(
+    _NavItem(
       key: Permissions.reportCards,
       label: 'Report Cards',
       icon: Icons.description_rounded,
       page: GenerateReportCardScreen(),
+      section: 'RESULTS',
     ),
     _NavItem(
       key: Permissions.promotion,
       label: 'Promotion',
       icon: Icons.trending_up_rounded,
       page: StudentPromotionScreen(),
+      section: 'RESULTS',
     ),
+
+    // ── OPERATIONS ────────────────────────────────────
     _NavItem(
       key: Permissions.attendance,
       label: 'Attendance',
@@ -144,19 +223,33 @@ _NavItem(
       key: Permissions.timetable,
       label: 'Timetable',
       icon: Icons.calendar_month_rounded,
-      page: TimetableScreen(),
-    ),
-    _NavItem(
-      key: Permissions.fees,
-      label: 'Fees',
-      icon: Icons.payments_rounded,
-      page: FeesDashboardScreen(),
+      page: TimetableHubScreen(),
+      section: 'OPERATIONS',
     ),
     _NavItem(
       key: Permissions.announcements,
       label: 'Announcements',
       icon: Icons.campaign_rounded,
       page: AnnouncementListScreen(),
+      section: 'OPERATIONS',
+    ),
+
+    // ── FEES ──────────────────────────────────────────
+    _NavItem(
+      key: Permissions.fees,
+      label: 'Fees',
+      icon: Icons.payments_rounded,
+      page: FeesDashboardScreen(),
+      section: 'FEES',
+    ),
+
+    // ── SYSTEM ────────────────────────────────────────
+    _NavItem(
+      key: Permissions.studentPortalAdmin,
+      label: 'Student portal access',
+      icon: Icons.password_rounded,
+      page: StudentPortalAdminScreen(),
+      section: 'SYSTEM',
     ),
     _NavItem(
       key: Permissions.users,
@@ -166,11 +259,11 @@ _NavItem(
       section: 'SYSTEM',
     ),
     _NavItem(
-      key: Permissions.parentPortal,
-      label: 'My Children',
-      icon: Icons.family_restroom_rounded,
-      page: ParentPortalScreen(),
-      section: 'PARENT',
+      key: Permissions.media,
+      label: 'Media',
+      icon: Icons.photo_library_rounded,
+      page: MediaSettingsScreen(),
+      section: 'SYSTEM',
     ),
     _NavItem(
       key: Permissions.auditLog,
@@ -190,9 +283,7 @@ _NavItem(
 
   void _select(int index) {
     if (index < 0) return;
-    // Update page on the same tap (one click)
     setState(() => _selectedIndex = index);
-    // Close drawer after the frame so the content change is not lost
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       final scaffold = _scaffoldKey.currentState;
@@ -237,10 +328,6 @@ _NavItem(
       _selectedIndex = 0;
     }
 
-    // Drawer navigation — not a fixed sidebar
-    // On non-dashboard pages, leading is Back (to Dashboard).
-    // Menu is always available via the drawer icon on Dashboard,
-    // and via the menu button in actions on other pages.
     final isDashboard = _selectedIndex == 0;
 
     return Scaffold(
@@ -251,7 +338,9 @@ _NavItem(
         elevation: 0,
         leading: IconButton(
           tooltip: isDashboard ? 'Menu' : 'Back to Dashboard',
-          icon: Icon(isDashboard ? Icons.menu_rounded : Icons.arrow_back_rounded),
+          icon: isDashboard
+              ? _AnimatedHamburger(animation: _menuAnim)
+              : const Icon(Icons.arrow_back_rounded),
           onPressed: () {
             if (isDashboard) {
               _scaffoldKey.currentState?.openDrawer();
@@ -268,7 +357,7 @@ _NavItem(
           if (!isDashboard)
             IconButton(
               tooltip: 'Menu',
-              icon: const Icon(Icons.menu_rounded),
+              icon: _AnimatedHamburger(animation: _menuAnim),
               onPressed: () => _scaffoldKey.currentState?.openDrawer(),
             ),
           ListenableBuilder(
@@ -278,7 +367,9 @@ _NavItem(
               return IconButton(
                 tooltip: dark ? 'Light mode' : 'Dark mode',
                 onPressed: () => ThemeController.instance.toggleDark(),
-                icon: Icon(dark ? Icons.light_mode_rounded : Icons.dark_mode_rounded),
+                icon: Icon(
+                  dark ? Icons.light_mode_rounded : Icons.dark_mode_rounded,
+                ),
               );
             },
           ),
@@ -304,14 +395,6 @@ _NavItem(
     return IndexedStack(
       index: _selectedIndex,
       children: items.map((item) => item.page).toList(),
-    );
-  }
-
-  Widget _buildSidebar(List<_NavItem> items) {
-    return Container(
-      width: sidebarWidth,
-      color: sidebarBg,
-      child: SafeArea(child: _buildSidebarBody(items)),
     );
   }
 
@@ -357,8 +440,6 @@ _NavItem(
             ],
           ),
         ),
-
-        // Current user
         if (user != null)
           Container(
             margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -410,9 +491,7 @@ _NavItem(
               ],
             ),
           ),
-
         const Divider(color: Colors.white12, height: 16),
-
         Expanded(
           child: ListView.builder(
             padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 10),
@@ -420,11 +499,15 @@ _NavItem(
             itemBuilder: (context, index) {
               final item = items[index];
               final selected = index == _selectedIndex;
+              final prevSection =
+                  index > 0 ? items[index - 1].section : null;
+              final showSection = item.section != null &&
+                  item.section != prevSection;
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (item.section != null) ...[
+                  if (showSection) ...[
                     Padding(
                       padding: EdgeInsets.only(
                         left: 12,
@@ -449,7 +532,7 @@ _NavItem(
                     borderRadius: BorderRadius.circular(10),
                     child: InkWell(
                       borderRadius: BorderRadius.circular(10),
-                      onTap: () { _select(index); },
+                      onTap: () => _select(index),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -475,8 +558,9 @@ _NavItem(
                               child: Text(
                                 item.label,
                                 style: TextStyle(
-                                  color:
-                                      selected ? Colors.white : Colors.white70,
+                                  color: selected
+                                      ? Colors.white
+                                      : Colors.white70,
                                   fontWeight: selected
                                       ? FontWeight.w700
                                       : FontWeight.w500,
@@ -503,7 +587,6 @@ _NavItem(
             },
           ),
         ),
-
         const Divider(color: Colors.white12, height: 1),
         Padding(
           padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -524,7 +607,7 @@ _NavItem(
                   size: 20,
                 ),
                 value: dark,
-                activeColor: const Color(0xFF60A5FA),
+                activeThumbColor: const Color(0xFF60A5FA),
                 onChanged: (_) => ThemeController.instance.toggleDark(),
               );
             },
@@ -546,6 +629,55 @@ _NavItem(
           ),
         ),
       ],
+    );
+  }
+}
+
+/// Three animated horizontal lines (hamburger) for the sidebar menu.
+class _AnimatedHamburger extends StatelessWidget {
+  final Animation<double> animation;
+
+  const _AnimatedHamburger({required this.animation});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: animation,
+      builder: (context, _) {
+        final t = animation.value;
+        // Stagger line widths / opacity for a soft pulse
+        double w(double phase) {
+          final v = ((t + phase) % 1.0);
+          final wave = (v < 0.5) ? (v * 2) : (2 - v * 2);
+          return 12.0 + wave * 6.0; // 12 → 18
+        }
+
+        Widget line(double width, {double opacity = 1}) {
+          return Container(
+            height: 2.0,
+            width: width,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: opacity),
+              borderRadius: BorderRadius.circular(2),
+            ),
+          );
+        }
+
+        // IconButton constraint is ~24; keep well under to avoid overflow.
+        return SizedBox(
+          width: 22,
+          height: 16,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              line(w(0.0), opacity: 0.95),
+              line(w(0.33), opacity: 1.0),
+              line(w(0.66), opacity: 0.95),
+            ],
+          ),
+        );
+      },
     );
   }
 }

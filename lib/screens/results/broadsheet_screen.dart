@@ -67,13 +67,51 @@ class _BroadsheetScreenState extends State<BroadsheetScreen> {
 
   Future<void> loadClasses() async {
     try {
-      final data = await ClassStorage.getClasses();
+      List<SchoolClass> data = [];
+      try {
+        data = await ClassStorage.getClasses();
+      } catch (_) {
+        data = [];
+      }
 
-      data.sort(
-        (a, b) => a.fullClassName.toLowerCase().compareTo(
-          b.fullClassName.toLowerCase(),
-        ),
-      );
+      // Fallback: class names from student assignments / subjects
+      if (data.isEmpty) {
+        final names = <String>{};
+        try {
+          final sc = await StudentClassStorage.getStudents();
+          for (final s in sc) {
+            final n = s.className.trim();
+            if (n.isNotEmpty) names.add(n);
+          }
+        } catch (_) {}
+        try {
+          final subjects = await ClassSubjectStorage.getAssignments();
+          for (final a in subjects) {
+            final n = a.className.trim();
+            if (n.isNotEmpty) names.add(n);
+          }
+        } catch (_) {}
+
+        for (final name in names) {
+          final parts = name.split(RegExp(r'\s+'));
+          final base = parts.isNotEmpty ? parts.first : name;
+          final arm = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+          data.add(
+            SchoolClass(
+              className: base,
+              arm: arm,
+              teacherId: '',
+              classTeacher: '',
+              capacity: 0,
+            ),
+          );
+        }
+        data.sort(
+          (a, b) => a.fullClassName.toLowerCase().compareTo(
+                b.fullClassName.toLowerCase(),
+              ),
+        );
+      }
 
       if (!mounted) return;
 
@@ -303,16 +341,12 @@ class _BroadsheetScreenState extends State<BroadsheetScreen> {
   // GRADE
   // ==========================================================
 
+  /// Display band used on broadsheet (not WAEC letter codes).
   String getGrade(double average) {
-    if (average >= 75) return 'A1';
-    if (average >= 70) return 'B2';
-    if (average >= 65) return 'B3';
-    if (average >= 60) return 'C4';
-    if (average >= 55) return 'C5';
-    if (average >= 50) return 'C6';
-    if (average >= 45) return 'D7';
-    if (average >= 40) return 'E8';
-    return 'F9';
+    if (average >= 70) return 'Distinction';
+    if (average >= 50) return 'Credit';
+    if (average >= 40) return 'Pass';
+    return 'Fail';
   }
 
   // ==========================================================
@@ -450,13 +484,13 @@ class _BroadsheetScreenState extends State<BroadsheetScreen> {
 
           const SizedBox(height: 18),
 
-          // CLASS
-          DropdownButtonFormField<SchoolClass>(
-            initialValue: selectedClass,
+          // SESSION
+          DropdownButtonFormField<String>(
+            initialValue: selectedSession,
             isExpanded: true,
             decoration: InputDecoration(
-              labelText: 'Class',
-              prefixIcon: const Icon(Icons.school_outlined),
+              labelText: 'Session',
+              prefixIcon: const Icon(Icons.calendar_month_outlined),
               filled: true,
               fillColor: Colors.grey.shade50,
               border: OutlineInputBorder(
@@ -468,110 +502,105 @@ class _BroadsheetScreenState extends State<BroadsheetScreen> {
                 borderSide: BorderSide(color: Colors.grey.shade200),
               ),
             ),
-            items: classes.map((schoolClass) {
-              return DropdownMenuItem<SchoolClass>(
-                value: schoolClass,
-                child: Text(
-                  schoolClass.fullClassName,
-                  overflow: TextOverflow.ellipsis,
-                ),
+            items: sessions.map((session) {
+              return DropdownMenuItem<String>(
+                value: session,
+                child: Text(session),
               );
             }).toList(),
             onChanged: (value) async {
               if (value == null) return;
-
               setState(() {
-                selectedClass = value;
+                selectedSession = value;
               });
-
-              await loadBroadsheet();
+              if (selectedClass != null) {
+                await loadBroadsheet();
+              }
             },
           ),
 
           const SizedBox(height: 12),
 
-          Row(
-            children: [
-              // SESSION
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: selectedSession,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: 'Session',
-                    prefixIcon: const Icon(Icons.calendar_month_outlined),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                  ),
-                  items: sessions.map((session) {
-                    return DropdownMenuItem<String>(
-                      value: session,
-                      child: Text(session),
-                    );
-                  }).toList(),
-                  onChanged: (value) async {
-                    if (value == null) return;
-
-                    setState(() {
-                      selectedSession = value;
-                    });
-
-                    if (selectedClass != null) {
-                      await loadBroadsheet();
-                    }
-                  },
+          // CLASS
+          Builder(builder: (context) {
+            final names = classes.map((c) => c.fullClassName).toList();
+            final current = selectedClass?.fullClassName;
+            final safe =
+                (current != null && names.contains(current)) ? current : null;
+            return DropdownButtonFormField<String>(
+              key: ValueKey('bs_class_${names.length}_$safe'),
+              value: safe,
+              isExpanded: true,
+              decoration: InputDecoration(
+                labelText: 'Class',
+                prefixIcon: const Icon(Icons.school_outlined),
+                helperText: names.isEmpty
+                    ? 'No classes found'
+                    : '${names.length} class(es)',
+                filled: true,
+                fillColor: Colors.grey.shade50,
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(14),
+                  borderSide: BorderSide(color: Colors.grey.shade200),
                 ),
               ),
-
-              const SizedBox(width: 12),
-
-              // TERM
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  initialValue: selectedTerm,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: 'Term',
-                    prefixIcon: const Icon(Icons.event_note_outlined),
-                    filled: true,
-                    fillColor: Colors.grey.shade50,
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(14),
-                      borderSide: BorderSide(color: Colors.grey.shade200),
-                    ),
-                  ),
-                  items: terms.map((term) {
-                    return DropdownMenuItem<String>(
-                      value: term,
-                      child: Text(term, overflow: TextOverflow.ellipsis),
-                    );
-                  }).toList(),
-                  onChanged: (value) async {
-                    if (value == null) return;
-
-                    setState(() {
-                      selectedTerm = value;
-                    });
-
-                    if (selectedClass != null) {
+              items: names
+                  .map((n) => DropdownMenuItem(
+                        value: n,
+                        child: Text(n, overflow: TextOverflow.ellipsis),
+                      ))
+                  .toList(),
+              onChanged: names.isEmpty
+                  ? null
+                  : (value) async {
+                      if (value == null) return;
+                      setState(() {
+                        selectedClass =
+                            classes.firstWhere((c) => c.fullClassName == value);
+                      });
                       await loadBroadsheet();
-                    }
-                  },
-                ),
+                    },
+            );
+          }),
+
+          const SizedBox(height: 12),
+
+          DropdownButtonFormField<String>(
+            initialValue: selectedTerm,
+            isExpanded: true,
+            decoration: InputDecoration(
+              labelText: 'Term',
+              prefixIcon: const Icon(Icons.event_note_outlined),
+              filled: true,
+              fillColor: Colors.grey.shade50,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey.shade200),
               ),
-            ],
+              enabledBorder: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(14),
+                borderSide: BorderSide(color: Colors.grey.shade200),
+              ),
+            ),
+            items: terms.map((term) {
+              return DropdownMenuItem<String>(
+                value: term,
+                child: Text(term, overflow: TextOverflow.ellipsis),
+              );
+            }).toList(),
+            onChanged: (value) async {
+              if (value == null) return;
+              setState(() {
+                selectedTerm = value;
+              });
+              if (selectedClass != null) {
+                await loadBroadsheet();
+              }
+            },
           ),
         ],
       ),

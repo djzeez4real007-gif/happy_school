@@ -20,6 +20,11 @@ class Permissions {
   static const String idCards = 'id_cards';
   static const String classAverages = 'class_averages';
   static const String alumni = 'alumni';
+  static const String media = 'media';
+  static const String myTeaching = 'my_teaching';
+  static const String assignTeacherSubjects = 'assign_teacher_subjects';
+  static const String studentPortal = 'student_portal';
+  static const String studentPortalAdmin = 'student_portal_admin';
 
   static bool canAccess(String role, String feature) {
     switch (role) {
@@ -43,13 +48,10 @@ class Permissions {
         }.contains(feature);
 
       case 'subject_teacher':
-        // View announcements only (no create/edit/delete)
+        // Sidebar: My Teaching + Announcements only.
+        // Results / timetable open from inside My Teaching.
         return {
-          dashboard,
-          resultEntry,
-          broadsheet,
-          timetable,
-          classAverages,
+          myTeaching,
           announcements,
         }.contains(feature);
 
@@ -67,6 +69,12 @@ class Permissions {
           announcements,
         }.contains(feature);
 
+      case 'student':
+        return {
+          studentPortal,
+          announcements,
+        }.contains(feature);
+
       default:
         return feature == dashboard;
     }
@@ -75,10 +83,20 @@ class Permissions {
   static bool canManageUsers(String role) =>
       role == 'admin' || role == 'principal';
 
-  static bool canDeleteUser(String actorRole, String targetRole) {
-    if (actorRole == 'principal' && targetRole == 'admin') return false;
-    if (targetRole == 'admin' && actorRole != 'admin') return false;
-    return canManageUsers(actorRole);
+  /// Only Administrator can delete users (not Principal).
+  static bool canDeleteUser(String actorRole, [String? targetRole]) {
+    return actorRole == 'admin';
+  }
+
+  /// Principal may view fees but not set amounts or record payments.
+  static bool canEditFees(String role) {
+    return role == 'admin' || role == 'accountant';
+  }
+
+  static bool canViewFees(String role) {
+    return role == 'admin' ||
+        role == 'principal' ||
+        role == 'accountant';
   }
 
   /// Only admin & principal can add/edit/delete timetable entries.

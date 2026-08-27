@@ -81,6 +81,25 @@ class StudentFeePaymentStorage {
     return total;
   }
 
+  /// Discounts only (not money received) for session + term.
+  static Future<double> totalDiscountForTerm(
+    String admissionNo, {
+    required String session,
+    required String term,
+  }) async {
+    final payments = await getPayments();
+    double total = 0;
+    for (final payment in payments) {
+      if (payment.admissionNo == admissionNo &&
+          payment.session == session &&
+          payment.term == term) {
+        total += payment.discountAmount;
+      }
+    }
+    return total;
+  }
+
+
   //==========================
   // GET PAYMENTS OF A STUDENT
   //==========================

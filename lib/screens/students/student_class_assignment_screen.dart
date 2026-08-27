@@ -305,6 +305,26 @@ class _StudentClassAssignmentScreenState
                         },
                       ),
                       const SizedBox(height: 16),
+                      DropdownButtonFormField<SchoolClass>(
+                        value: selectedClass,
+                        isExpanded: true,
+                        decoration: _fieldDecoration(
+                          label: 'Class',
+                          icon: Icons.class_rounded,
+                        ),
+                        items: classes
+                            .map(
+                              (c) => DropdownMenuItem(
+                                value: c,
+                                child: Text(c.fullClassName),
+                              ),
+                            )
+                            .toList(),
+                        onChanged: (value) {
+                          setState(() => selectedClass = value);
+                        },
+                      ),
+                      const SizedBox(height: 16),
                       if (isEdit)
                         InputDecorator(
                           decoration: _fieldDecoration(
@@ -459,25 +479,7 @@ class _StudentClassAssignmentScreenState
                           ),
                       ],
                       const SizedBox(height: 16),
-                      DropdownButtonFormField<SchoolClass>(
-                        value: selectedClass,
-                        isExpanded: true,
-                        decoration: _fieldDecoration(
-                          label: 'Class',
-                          icon: Icons.class_rounded,
-                        ),
-                        items: classes
-                            .map(
-                              (c) => DropdownMenuItem(
-                                value: c,
-                                child: Text(c.fullClassName),
-                              ),
-                            )
-                            .toList(),
-                        onChanged: (value) {
-                          setState(() => selectedClass = value);
-                        },
-                      ),
+
                     ],
                   ),
                 ),

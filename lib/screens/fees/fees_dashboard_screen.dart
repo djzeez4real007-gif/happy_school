@@ -1,3 +1,5 @@
+import '../../core/permissions.dart';
+import '../../services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -157,6 +159,20 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
         page: const FinancialReportsScreen(),
       ),
     ];
+
+    // Principal: view-only — hide fee settings & receive payment
+    final canEditFees = Permissions.canEditFees(
+      AuthService.currentRole,
+    );
+    final visibleItems = canEditFees
+        ? items
+        : items
+            .where(
+              (e) =>
+                  e.title != 'Fee Settings' &&
+                  e.title != 'Receive Payment',
+            )
+            .toList();
 
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
@@ -334,10 +350,10 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
                 ),
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final item = items[index];
+                    final item = visibleItems[index];
                     return _FeeCard(item: item);
                   },
-                  childCount: items.length,
+                  childCount: visibleItems.length,
                 ),
               ),
             ),

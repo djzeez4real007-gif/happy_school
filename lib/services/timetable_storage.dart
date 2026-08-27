@@ -3,7 +3,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../models/timetable.dart';
 
 class TimetableStorage {
-  static const String boxName = "timetable";
+  static const String boxName = "timetables";
 
   // ============================================================
   // OPEN TIMETABLE BOX
@@ -11,10 +11,13 @@ class TimetableStorage {
 
   static Future<Box> _getBox() async {
     if (Hive.isBoxOpen(boxName)) {
-      return Hive.box(boxName);
+      try {
+        return Hive.box<Map>(boxName);
+      } catch (_) {
+        return Hive.box(boxName);
+      }
     }
-
-    return await Hive.openBox(boxName);
+    return await Hive.openBox<Map>(boxName);
   }
 
   // ============================================================
@@ -105,5 +108,57 @@ class TimetableStorage {
 
   static String generateId() {
     return DateTime.now().millisecondsSinceEpoch.toString();
+  }
+
+  /// Copy all entries from [sourceClass] to each target class.
+  /// Skips a target slot if the same day+period already exists for that class
+  /// (unless [overwrite] is true — then those are left as-is and only missing
+  /// slots are filled; we never delete existing).
+  static Future<int> copyClassToClasses({
+    required String sourceClass,
+    required List<String> targetClasses,
+    bool skipExistingSlots = true,
+  }) async {
+    final source = sourceClass.trim();
+    final targets = targetClasses
+        .map((e) => e.trim())
+        .where((e) => e.isNotEmpty && e.toLowerCase() != source.toLowerCase())
+        .toSet()
+        .toList();
+    if (source.isEmpty || targets.isEmpty) return 0;
+
+    final all = await getTimetables();
+    final sourceEntries = all
+        .where((e) => e.className.trim().toLowerCase() == source.toLowerCase())
+        .toList();
+    if (sourceEntries.isEmpty) return 0;
+
+    final box = await _getBox();
+    var added = 0;
+    var n = 0;
+
+    for (final target in targets) {
+      final existing = all
+          .where((e) => e.className.trim().toLowerCase() == target.toLowerCase())
+          .toList();
+      for (final src in sourceEntries) {
+        if (skipExistingSlots) {
+          final exists = existing.any(
+            (e) =>
+                e.day == src.day &&
+                e.period.trim().toLowerCase() == src.period.trim().toLowerCase(),
+          );
+          if (exists) continue;
+        }
+        n++;
+        final copy = src.copyWith(
+          id: '${generateId()}_$n',
+          className: target,
+        );
+        await box.add(copy.toMap());
+        added++;
+      }
+    }
+    return added;
   }
 }

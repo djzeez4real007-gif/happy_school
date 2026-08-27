@@ -22,7 +22,7 @@ class ReportCard {
   final int attendancePresent;
   final int attendanceTotal;
 
-  /// null = N/A (1st/2nd term)
+  /// null = N/A for non-third term
   final bool? promoted;
 
   /// promoted | repeated | graduated | not_promoted | null
@@ -52,24 +52,30 @@ class ReportCard {
     this.passportPath,
   });
 
-  /// Label for UI / PDF
+  /// Clear label for UI / PDF (ASCII-safe for PDF fonts)
   String get promotionLabel {
-    if (term != 'Third Term') return '—';
+    final t = term.trim().toLowerCase();
+    final isThird = t == 'third term' || t.contains('third');
+    if (!isThird) {
+      return 'N/A';
+    }
     switch (promotionStatus) {
       case 'promoted':
-        return 'PROMOTED';
+        return 'Promoted';
       case 'repeated':
-        return 'REPEATED';
+        return 'Repeated';
       case 'graduated':
-        return 'GRADUATED';
+        return 'Graduated';
       case 'left':
-        return 'LEFT SCHOOL';
+        return 'Left school';
+      case 'withdrawn':
+        return 'Withdrawn';
       case 'not_promoted':
-        return 'NOT PROMOTED';
+        return 'Not promoted';
       default:
-        if (promoted == true) return 'PROMOTED';
-        if (promoted == false) return 'NOT PROMOTED';
-        return '—';
+        if (promoted == true) return 'Promoted';
+        if (promoted == false) return 'Not promoted';
+        return 'Pending decision';
     }
   }
 

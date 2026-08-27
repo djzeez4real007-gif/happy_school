@@ -4,6 +4,7 @@ import '../../core/utils/sessions.dart';
 import '../../core/theme/app_colors.dart';
 
 import '../../models/report_card.dart';
+import '../../services/report_card_pdf_service.dart';
 import '../../models/result.dart';
 import '../../models/school_class.dart';
 import '../../models/student.dart';
@@ -42,6 +43,8 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
 
   bool loading = false;
   bool bulkMode = false;
+  String studentSearch = '';
+  final studentSearchController = TextEditingController();
   final Set<String> selectedAdmissionNos = {};
 
   final List<String> sessions = Sessions.list();
@@ -51,6 +54,12 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
     'Second Term',
     'Third Term',
   ];
+
+  @override
+  void dispose() {
+    studentSearchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -327,23 +336,12 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
           );
           return;
         }
-        // Show first, user can go back and open others if needed — or page through
         await Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => ReportCardScreen(reportCard: cards.first),
+            builder: (_) => _BulkReportCardsViewer(cards: cards),
           ),
         );
-        if (cards.length > 1 && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Generated ${cards.length} report cards. Showing the first. '
-                'Select one student to view others.',
-              ),
-            ),
-          );
-        }
       } catch (e) {
         if (!mounted) return;
         setState(() => loading = false);
@@ -524,18 +522,6 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   },
                 ),
                 const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: selectedTerm,
-                  decoration: _dec('Term', Icons.menu_book_rounded),
-                  items: terms
-                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
-                      .toList(),
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setState(() => selectedTerm = value);
-                  },
-                ),
-                const SizedBox(height: 14),
                 DropdownButtonFormField<SchoolClass>(
                   value: selectedClass,
                   isExpanded: true,
@@ -557,23 +543,74 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                     await loadStudents();
                   },
                 ),
+                const SizedBox(height: 14),
+                DropdownButtonFormField<String>(
+                  value: selectedTerm,
+                  decoration: _dec('Term', Icons.menu_book_rounded),
+                  items: terms
+                      .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                      .toList(),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => selectedTerm = value);
+                  },
+                ),
                 if (!bulkMode) ...[
                   const SizedBox(height: 14),
-                  DropdownButtonFormField<Student>(
-                    value: selectedStudent,
-                    isExpanded: true,
-                    decoration: _dec('Student', Icons.person_rounded),
-                    items: students
-                        .map((s) => DropdownMenuItem(
-                              value: s,
-                              child: Text(s.fullName),
-                            ))
-                        .toList(),
-                    onChanged: (value) {
-                      if (value == null) return;
-                      setState(() => selectedStudent = value);
-                    },
+                  TextField(
+                    controller: studentSearchController,
+                    onChanged: (v) => setState(() => studentSearch = v),
+                    decoration: _dec('Search student', Icons.search_rounded).copyWith(
+                      hintText: 'Type name or admission number…',
+                    ),
                   ),
+                  const SizedBox(height: 10),
+                  if (studentSearch.trim().isNotEmpty) ...[
+                    ...students.where((s) {
+                      final q = studentSearch.trim().toLowerCase();
+                      return s.fullName.toLowerCase().contains(q) ||
+                          s.admissionNo.toLowerCase().contains(q);
+                    }).take(12).map((s) {
+                      final sel = selectedStudent?.admissionNo == s.admissionNo;
+                      return ListTile(
+                        dense: true,
+                        selected: sel,
+                        leading: Icon(
+                          sel ? Icons.check_circle : Icons.person_outline,
+                          color: sel ? const Color(0xFF1D4ED8) : null,
+                        ),
+                        title: Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
+                        subtitle: Text(s.admissionNo),
+                        onTap: () => setState(() {
+                          selectedStudent = s;
+                          studentSearchController.text = s.fullName;
+                          studentSearch = s.fullName;
+                        }),
+                      );
+                    }),
+                  ] else if (selectedStudent != null)
+                    ListTile(
+                      dense: true,
+                      leading: const Icon(Icons.check_circle, color: Color(0xFF1D4ED8)),
+                      title: Text(selectedStudent!.fullName),
+                      subtitle: Text(selectedStudent!.admissionNo),
+                      trailing: IconButton(
+                        icon: const Icon(Icons.close),
+                        onPressed: () => setState(() {
+                          selectedStudent = null;
+                          studentSearch = '';
+                          studentSearchController.clear();
+                        }),
+                      ),
+                    )
+                  else
+                    const Padding(
+                      padding: EdgeInsets.only(top: 4),
+                      child: Text(
+                        'Start typing to find a student',
+                        style: TextStyle(color: Colors.grey, fontSize: 12),
+                      ),
+                    ),
                 ],
               ],
             ),
@@ -698,6 +735,160 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _BulkReportCardsViewer extends StatefulWidget {
+  final List<ReportCard> cards;
+  const _BulkReportCardsViewer({required this.cards});
+
+  @override
+  State<_BulkReportCardsViewer> createState() => _BulkReportCardsViewerState();
+}
+
+class _BulkReportCardsViewerState extends State<_BulkReportCardsViewer> {
+  bool busy = false;
+
+  Future<void> _run(Future<void> Function() action, String okMsg) async {
+    if (busy) return;
+    setState(() => busy = true);
+    try {
+      await action();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(okMsg),
+          backgroundColor: const Color(0xFF059669),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed: $e'),
+          backgroundColor: Colors.red.shade700,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => busy = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final cards = widget.cards;
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Generated (${cards.length})'),
+      ),
+      body: Column(
+        children: [
+          Container(
+            width: double.infinity,
+            margin: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFEFF6FF),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFBFDBFE)),
+            ),
+            child: const Text(
+              'Generate all PDFs creates one file with every student report. '
+              'Print or share it, then send to parents (WhatsApp, email, etc.). '
+              'Tap a student to open one report only.',
+              style: TextStyle(height: 1.35, fontSize: 13),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _run(
+                              () => ReportCardPdfService.printAllReportCards(
+                                    cards,
+                                  ),
+                              'Print / save dialog opened for all reports',
+                            ),
+                    icon: busy
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.picture_as_pdf_rounded),
+                    label: Text(
+                      busy ? 'Working…' : 'Generate all PDFs',
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1D4ED8),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: busy
+                        ? null
+                        : () => _run(
+                              () => ReportCardPdfService.shareAllReportCards(
+                                    cards,
+                                  ),
+                              'Share sheet opened — send the PDF to parents',
+                            ),
+                    icon: const Icon(Icons.share_rounded),
+                    label: const Text(
+                      'Share all',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF1D4ED8),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.separated(
+              padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
+              itemCount: cards.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 8),
+              itemBuilder: (_, i) {
+                final c = cards[i];
+                return Card(
+                  child: ListTile(
+                    leading: CircleAvatar(child: Text('${i + 1}')),
+                    title: Text(
+                      c.studentName,
+                      style: const TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    subtitle:
+                        Text('${c.className} · ${c.session} · ${c.term}'),
+                    trailing: const Icon(Icons.chevron_right),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ReportCardScreen(reportCard: c),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }

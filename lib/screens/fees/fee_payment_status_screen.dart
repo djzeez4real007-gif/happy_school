@@ -114,14 +114,20 @@ class _FeePaymentStatusScreenState extends State<FeePaymentStatusScreen> {
           session: selectedSession,
           term: selectedTerm,
         );
+        final discount = await StudentFeePaymentStorage.totalDiscountForTerm(
+          student.admissionNo,
+          session: selectedSession,
+          term: selectedTerm,
+        );
 
         final totalFee = fee?.totalFee ?? 0;
-        final balance = fee == null ? 0.0 : totalFee - paid;
+        final balance =
+            fee == null ? 0.0 : totalFee - paid - discount;
 
         String status;
         if (fee == null) {
           status = 'No fee';
-        } else if (paid <= 0.01) {
+        } else if (paid <= 0.01 && discount <= 0.01) {
           status = 'Unpaid';
         } else if (balance <= 0.01) {
           status = 'Paid';
@@ -135,6 +141,7 @@ class _FeePaymentStatusScreenState extends State<FeePaymentStatusScreen> {
             className: className,
             totalFee: totalFee,
             paid: paid,
+            discount: discount,
             balance: balance,
             status: status,
           ),
@@ -380,6 +387,7 @@ class _FeePaymentStatusScreenState extends State<FeePaymentStatusScreen> {
                                 DataColumn(label: Text('Class')),
                                 DataColumn(label: Text('Fee')),
                                 DataColumn(label: Text('Paid')),
+                                DataColumn(label: Text('Discount')),
                                 DataColumn(label: Text('Balance')),
                                 DataColumn(label: Text('Status')),
                               ],
@@ -406,6 +414,15 @@ class _FeePaymentStatusScreenState extends State<FeePaymentStatusScreen> {
                                           money(list[i].paid),
                                           style: const TextStyle(
                                             color: Color(0xFF059669),
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        Text(
+                                          money(list[i].discount),
+                                          style: const TextStyle(
+                                            color: Color(0xFFD97706),
                                             fontWeight: FontWeight.w700,
                                           ),
                                         ),
@@ -494,6 +511,7 @@ class _StatusRow {
   final String className;
   final double totalFee;
   final double paid;
+  final double discount;
   final double balance;
   final String status;
 
@@ -502,6 +520,7 @@ class _StatusRow {
     required this.className,
     required this.totalFee,
     required this.paid,
+    this.discount = 0,
     required this.balance,
     required this.status,
   });

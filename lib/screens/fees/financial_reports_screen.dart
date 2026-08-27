@@ -6,6 +6,7 @@ import '../../services/school_fee_storage.dart';
 import '../../services/student_class_storage.dart';
 import '../../services/student_fee_payment_storage.dart';
 import '../../services/student_storage.dart';
+import '../../services/class_storage.dart';
 
 class FinancialReportsScreen extends StatefulWidget {
   const FinancialReportsScreen({super.key});
@@ -21,10 +22,12 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
   String selectedSession = Sessions.current();
   String selectedTerm = 'First Term';
   String selectedClass = 'All';
+  List<String> allClassNames = [];
 
   // Enrollment-based totals (correct maths)
   double expectedFees = 0;
   double collectedAmount = 0;
+  double discountedAmount = 0;
   double outstandingAmount = 0;
   int debtorCount = 0;
   int studentCountWithFee = 0;
@@ -41,6 +44,13 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
     try {
       final data = await StudentFeePaymentStorage.getPayments();
       payments = data;
+      final classes = await ClassStorage.getClasses();
+      allClassNames = classes
+          .map((c) => c.fullClassName.toString().trim())
+          .where((n) => n.isNotEmpty)
+          .toSet()
+          .toList()
+        ..sort();
       await _recalculateTotals();
       if (!mounted) return;
       setState(() => loading = false);
@@ -68,6 +78,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
 
     double expected = 0;
     double collected = 0;
+    double discounted = 0;
     double outstanding = 0;
     int debtors = 0;
     int withFee = 0;
@@ -115,9 +126,16 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
           session: selectedSession,
           term: selectedTerm,
         );
+        final discount = await StudentFeePaymentStorage.totalDiscountForTerm(
+          student.admissionNo,
+          session: selectedSession,
+          term: selectedTerm,
+        );
 
+        // Collected = money received only (exclude discount)
         collected += paid > fee.totalFee ? fee.totalFee : paid;
-        final bal = fee.totalFee - paid;
+        discounted += discount;
+        final bal = fee.totalFee - paid - discount;
         if (bal > 0.01) {
           debtors++;
           outstanding += bal;
@@ -129,6 +147,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
 
     expectedFees = expected;
     collectedAmount = collected;
+    discountedAmount = discounted;
     outstandingAmount = outstanding;
     debtorCount = debtors;
     studentCountWithFee = withFee;
@@ -161,12 +180,18 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
   List<String> get terms => List<String>.from(Sessions.terms);
 
   List<String> get classOptions {
-    final values = payments
-        .map((p) => p.className)
-        .where((v) => v.isNotEmpty)
-        .toSet()
-        .toList()
-      ..sort();
+    // All registered classes (not only classes that already have a payment)
+    final values = List<String>.from(allClassNames);
+    if (values.isEmpty) {
+      // fallback: classes seen on payments / assignments
+      values.addAll(
+        payments
+            .map((p) => p.className)
+            .where((v) => v.isNotEmpty)
+            .toSet(),
+      );
+      values.sort();
+    }
     return ['All', ...values];
   }
 
@@ -434,17 +459,18 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                     value: money(collectedAmount),
                   ),
                   summaryCard(
+                    icon: Icons.discount_outlined,
+                    color: const Color(0xFFD97706),
+                    title: 'Total Discounts',
+                    value: money(discountedAmount),
+                  ),
+                  summaryCard(
                     icon: Icons.warning_amber_rounded,
                     color: const Color(0xFFDC2626),
                     title: 'Outstanding Balance',
                     value: money(outstandingAmount),
                   ),
-                  summaryCard(
-                    icon: Icons.receipt_long_rounded,
-                    color: const Color(0xFF7C3AED),
-                    title: 'Payment Transactions',
-                    value: '$totalTransactions',
-                  ),
+
                   summaryCard(
                     icon: Icons.groups_rounded,
                     color: const Color(0xFFEA580C),
@@ -480,7 +506,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                         const SizedBox(height: 8),
                         Text(
                           'Expected = assigned students × class fee for this session/term.\n'
-                          'Outstanding = expected − collected (includes unpaid students).',
+                          'Outstanding = expected − collected − discounts.',
                           style: TextStyle(
                             fontSize: 11.5,
                             color: Colors.grey.shade600,
@@ -490,61 +516,6 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Text(
-                          'Payment Records',
-                          style: TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: Text(
-                          '${filtered.length} record${filtered.length == 1 ? '' : 's'}',
-                          style: const TextStyle(
-                            color: Colors.blue,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  if (filtered.isEmpty)
-                    Card(
-                      child: Padding(
-                        padding: const EdgeInsets.all(35),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.receipt_long,
-                              size: 60,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No payment records for this filter.',
-                              style: TextStyle(color: Colors.grey.shade600),
-                            ),
-                          ],
-                        ),
-                      ),
-                    )
-                  else
-                    ...filtered.map(paymentCard),
                 ],
               ),
             ),

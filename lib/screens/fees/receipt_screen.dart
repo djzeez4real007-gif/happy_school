@@ -281,6 +281,13 @@ class ReceiptScreen extends StatelessWidget {
                                     bold: true,
                                     valueColor: const Color(0xFF059669),
                                   ),
+                                  if (payment.discountAmount > 0.01)
+                                    _row(
+                                      'Discount',
+                                      _money(payment.discountAmount),
+                                      bold: true,
+                                      valueColor: const Color(0xFFD97706),
+                                    ),
                                   _row(
                                     'Balance',
                                     _money(payment.balance),

@@ -18,6 +18,7 @@ import '../../services/subject_storage.dart';
 import '../../services/class_subject_storage.dart';
 import '../../core/widgets/premium_feedback.dart';
 import '../../models/class_subject.dart';
+import '../../services/subject_teacher_service.dart';
 
 class ResultEntryScreen extends StatefulWidget {
   const ResultEntryScreen({super.key});
@@ -82,7 +83,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
 
       if (!mounted) return;
 
-      // Class teachers only see their own class(es)
+      // Class / subject teachers only see relevant class(es)
       final user = AuthService.currentUser;
       var filtered = List<SchoolClass>.from(data);
       if (user != null &&
@@ -92,6 +93,8 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
             .where((c) => c.teacherId == user.linkedTeacherId)
             .toList();
       }
+      // Subject teachers can pick any class; subjects are restricted below.
+
 
       filtered.sort(
         (a, b) => a.fullClassName.toLowerCase().compareTo(
@@ -195,23 +198,17 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
 
       var subs = loadedSubjects;
       final u = AuthService.currentUser;
-      if (u != null &&
-          u.role == 'subject_teacher' &&
-          (u.linkedTeacherId ?? '').isNotEmpty) {
+      if (u != null && u.role == 'subject_teacher') {
         try {
-          final allAssign = await ClassSubjectStorage.getAssignments();
-          final myCodes = allAssign
-              .where((a) => a.teacherId == u.linkedTeacherId)
-              .map((a) => a.subjectCode.trim().toLowerCase())
-              .toSet();
-          if (myCodes.isNotEmpty) {
-            subs = subs
-                .where(
-                  (s) => myCodes.contains(s.subjectCode.trim().toLowerCase()),
-                )
-                .toList();
-          }
-        } catch (_) {}
+          final myCodes = await SubjectTeacherService.mySubjectCodes();
+          subs = subs
+              .where(
+                (s) => myCodes.contains(s.subjectCode.trim().toLowerCase()),
+              )
+              .toList();
+        } catch (_) {
+          subs = [];
+        }
       }
 
       if (!mounted) return;
@@ -892,13 +889,13 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
               if (isNarrow) {
                 return Column(
                   children: [
-                    buildClassDropdown(),
-                    const SizedBox(height: 12),
-                    buildSubjectDropdown(),
-                    const SizedBox(height: 12),
                     buildSessionDropdown(),
                     const SizedBox(height: 12),
+                    buildClassDropdown(),
+                    const SizedBox(height: 12),
                     buildTermDropdown(),
+                    const SizedBox(height: 12),
+                    buildSubjectDropdown(),
                   ],
                 );
               }
@@ -907,17 +904,17 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
                 children: [
                   Row(
                     children: [
-                      Expanded(child: buildClassDropdown()),
+                      Expanded(child: buildSessionDropdown()),
                       const SizedBox(width: 12),
-                      Expanded(child: buildSubjectDropdown()),
+                      Expanded(child: buildClassDropdown()),
                     ],
                   ),
                   const SizedBox(height: 12),
                   Row(
                     children: [
-                      Expanded(child: buildSessionDropdown()),
-                      const SizedBox(width: 12),
                       Expanded(child: buildTermDropdown()),
+                      const SizedBox(width: 12),
+                      Expanded(child: buildSubjectDropdown()),
                     ],
                   ),
                 ],
@@ -930,66 +927,91 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
   }
 
   Widget buildClassDropdown() {
-    return DropdownButtonFormField<SchoolClass>(
-      initialValue: selectedClass,
+    final names = classes.map((c) => c.fullClassName).toList();
+    final current = selectedClass?.fullClassName;
+    final safeValue =
+        (current != null && names.contains(current)) ? current : null;
+
+    return DropdownButtonFormField<String>(
+      key: ValueKey('class_dd_${names.length}_$safeValue'),
+      value: safeValue,
       isExpanded: true,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: "Class",
-        prefixIcon: Icon(Icons.school_outlined),
+        prefixIcon: const Icon(Icons.school_outlined),
+        helperText: names.isEmpty
+            ? "No classes found — register classes first"
+            : "${names.length} class(es)",
       ),
-      items: classes.map((schoolClass) {
-        return DropdownMenuItem<SchoolClass>(
-          value: schoolClass,
-          child: Text(
-            schoolClass.fullClassName,
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
-      }).toList(),
-      onChanged: (value) async {
-        if (value == null) return;
-
-        setState(() {
-          selectedClass = value;
-          subjects = [];
-          selectedSubject = null;
-          students = [];
-          searchController.clear();
-        });
-
-        await loadSubjects();
-      },
+      items: names
+          .map(
+            (name) => DropdownMenuItem<String>(
+              value: name,
+              child: Text(name, overflow: TextOverflow.ellipsis),
+            ),
+          )
+          .toList(),
+      onChanged: names.isEmpty
+          ? null
+          : (value) async {
+              if (value == null) return;
+              final schoolClass = classes.firstWhere(
+                (c) => c.fullClassName == value,
+              );
+              setState(() {
+                selectedClass = schoolClass;
+                subjects = [];
+                selectedSubject = null;
+                students = [];
+                searchController.clear();
+              });
+              await loadSubjects();
+            },
     );
   }
 
   Widget buildSubjectDropdown() {
-    return DropdownButtonFormField<Subject>(
-      initialValue: selectedSubject,
+    final codes = subjects.map((s) => s.subjectCode).toList();
+    final current = selectedSubject?.subjectCode;
+    final safeValue =
+        (current != null && codes.contains(current)) ? current : null;
+
+    return DropdownButtonFormField<String>(
+      key: ValueKey('subj_dd_${codes.length}_$safeValue'),
+      value: safeValue,
       isExpanded: true,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: "Subject",
-        prefixIcon: Icon(Icons.menu_book_outlined),
+        prefixIcon: const Icon(Icons.menu_book_outlined),
+        helperText: selectedClass == null
+            ? "Select a class first"
+            : (loadingSubjects
+                ? "Loading subjects…"
+                : (subjects.isEmpty
+                    ? "No subjects for this class — use Assign Subjects"
+                    : "${subjects.length} subject(s)")),
       ),
-      items: subjects.map((subject) {
-        return DropdownMenuItem<Subject>(
-          value: subject,
-          child: Text(
-            "${subject.subjectName} (${subject.subjectCode})",
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
-      }).toList(),
+      items: subjects
+          .map(
+            (subject) => DropdownMenuItem<String>(
+              value: subject.subjectCode,
+              child: Text(
+                "${subject.subjectName} (${subject.subjectCode})",
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          )
+          .toList(),
       onChanged: loadingSubjects || subjects.isEmpty
           ? null
-          : (value) async {
-              if (value == null) return;
-
+          : (code) async {
+              if (code == null) return;
+              final subject = subjects.firstWhere((s) => s.subjectCode == code);
               setState(() {
-                selectedSubject = value;
+                selectedSubject = subject;
                 students = [];
                 searchController.clear();
               });
-
               await loadStudents();
             },
     );

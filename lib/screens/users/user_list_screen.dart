@@ -64,7 +64,7 @@ class _UserListScreenState extends State<UserListScreen> {
         !Permissions.canDeleteUser(actor.role, user.role)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Principal cannot delete the Administrator'),
+          content: Text('Only the Administrator can delete users'),
         ),
       );
       return;
@@ -319,12 +319,25 @@ class _UserListScreenState extends State<UserListScreen> {
                                     if (value == 'edit') openForm(user: user);
                                     if (value == 'delete') confirmDelete(user);
                                   },
-                                  itemBuilder: (_) => const [
-                                    PopupMenuItem(
-                                        value: 'edit', child: Text('Edit')),
-                                    PopupMenuItem(
-                                        value: 'delete', child: Text('Delete')),
-                                  ],
+                                  itemBuilder: (_) {
+                                    final items = <PopupMenuEntry<String>>[
+                                      const PopupMenuItem(
+                                        value: 'edit',
+                                        child: Text('Edit'),
+                                      ),
+                                    ];
+                                    final role =
+                                        AuthService.currentUser?.role ?? '';
+                                    if (Permissions.canDeleteUser(role)) {
+                                      items.add(
+                                        const PopupMenuItem(
+                                          value: 'delete',
+                                          child: Text('Delete'),
+                                        ),
+                                      );
+                                    }
+                                    return items;
+                                  },
                                 ),
                               ],
                             ),

@@ -1,3 +1,5 @@
+import '../../core/permissions.dart';
+import '../../services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -30,6 +32,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   SchoolFee? schoolFee;
 
   final amountController = TextEditingController();
+  final discountController = TextEditingController();
   final studentSearchController = TextEditingController();
   String studentSearch = '';
   String receiptNo = '';
@@ -40,6 +43,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   final List<String> terms = Sessions.terms;
   double totalFee = 0;
   double totalPaid = 0;
+  double totalDiscount = 0;
   double balance = 0;
   bool saving = false;
 
@@ -92,12 +96,19 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
         session: selectedSession,
         term: selectedTerm,
       );
+      totalDiscount = await StudentFeePaymentStorage.totalDiscountForTerm(
+        student.admissionNo,
+        session: selectedSession,
+        term: selectedTerm,
+      );
       final paidNow = double.tryParse(amountController.text) ?? 0;
-      balance = totalFee - (totalPaid + paidNow);
+      final discNow = double.tryParse(discountController.text) ?? 0;
+      balance = totalFee - totalPaid - totalDiscount - paidNow - discNow;
     } else {
       schoolFee = null;
       totalFee = 0;
       totalPaid = 0;
+      totalDiscount = 0;
       balance = 0;
     }
     if (mounted) setState(() {});
@@ -105,18 +116,31 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
 
   void calculateBalance() {
     final paid = double.tryParse(amountController.text) ?? 0;
-    balance = totalFee - (totalPaid + paid);
+    final disc = double.tryParse(discountController.text) ?? 0;
+    balance = totalFee - totalPaid - totalDiscount - paid - disc;
     setState(() {});
   }
 
   Future<void> savePayment() async {
+    if (!Permissions.canEditFees(AuthService.currentRole)) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Principal can view fees only. Recording payments is not allowed.'),
+          ),
+        );
+      }
+      return;
+    }
+
     if (selectedStudent == null || studentClass == null) {
       PremiumFeedback.info(context, title: 'Select a student first');
       return;
     }
     final paid = double.tryParse(amountController.text) ?? 0;
-    if (paid <= 0) {
-      PremiumFeedback.info(context, title: 'Enter amount paying');
+    final disc = double.tryParse(discountController.text) ?? 0;
+    if (paid <= 0 && disc <= 0) {
+      PremiumFeedback.info(context, title: 'Enter amount paying or discount');
       return;
     }
     setState(() => saving = true);
@@ -134,6 +158,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
       otherCharges: schoolFee?.otherCharges ?? 0,
       totalSchoolFee: totalFee,
       amountPaid: paid,
+      discountAmount: disc,
       balance: balance,
       paymentDate: DateTime.now().toString(),
       paymentMethod: paymentMethod,
@@ -157,6 +182,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
         icon: Icons.payments_rounded,
       );
       amountController.clear();
+      discountController.clear();
       await generateReceipt();
       await loadStudentData(selectedStudent!);
       setState(() => saving = false);
@@ -175,6 +201,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   @override
   void dispose() {
     amountController.dispose();
+    discountController.dispose();
     studentSearchController.dispose();
     super.dispose();
   }
@@ -422,7 +449,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
                 Text(
                   schoolFee == null
                       ? 'No fee set for this class/session/term'
-                      : 'Total fee: ₦${totalFee.toStringAsFixed(0)} · Paid this term: ₦${totalPaid.toStringAsFixed(0)}',
+                      : 'Total fee: ₦${totalFee.toStringAsFixed(0)} · Paid: ₦${totalPaid.toStringAsFixed(0)} · Discount: ₦${totalDiscount.toStringAsFixed(0)}',
                   style: TextStyle(
                     color: schoolFee == null
                         ? const Color(0xFFDC2626)
@@ -437,6 +464,16 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
                 decoration: const InputDecoration(
                   labelText: 'Amount Paying',
                   prefixIcon: Icon(Icons.payments_outlined),
+                ),
+                onChanged: (_) => calculateBalance(),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: discountController,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Discount (optional)',
+                  prefixIcon: Icon(Icons.discount_outlined),
                 ),
                 onChanged: (_) => calculateBalance(),
               ),
@@ -490,7 +527,7 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
               const SizedBox(height: 20),
               PremiumForm.primaryButton(
                 label: 'SAVE PAYMENT',
-                onPressed: savePayment,
+                onPressed: Permissions.canEditFees(AuthService.currentRole) ? savePayment : null,
                 loading: saving,
                 icon: Icons.save_rounded,
               ),

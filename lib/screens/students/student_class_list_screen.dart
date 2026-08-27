@@ -17,6 +17,9 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
   List<StudentClass> filteredStudents = [];
   bool loading = true;
 
+  /// Expanded folder keys: "session||className"
+  final Set<String> _expanded = {};
+
   final TextEditingController searchController = TextEditingController();
 
   static const Color _bg = Color(0xFFF5F7FB);
@@ -54,7 +57,41 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
           }).toList();
 
     if (!mounted) return;
-    setState(() => filteredStudents = results);
+    setState(() {
+      filteredStudents = results;
+      // Auto-expand matching folders when searching
+      if (query.isNotEmpty) {
+        for (final s in results) {
+          _expanded.add(_folderKey(s.session, s.className));
+        }
+      }
+    });
+  }
+
+  String _folderKey(String session, String className) =>
+      '${session.trim()}||${className.trim()}';
+
+  /// session → className → students
+  Map<String, Map<String, List<StudentClass>>> get _folders {
+    final map = <String, Map<String, List<StudentClass>>>{};
+    for (final s in filteredStudents) {
+      final session = s.session.trim().isEmpty ? 'No session' : s.session.trim();
+      final cls = s.className.trim().isEmpty ? 'No class' : s.className.trim();
+      map.putIfAbsent(session, () => {});
+      map[session]!.putIfAbsent(cls, () => []);
+      map[session]![cls]!.add(s);
+    }
+    // sort students by name inside each class
+    for (final sess in map.keys) {
+      for (final cls in map[sess]!.keys) {
+        map[sess]![cls]!.sort(
+          (a, b) => a.studentName.toLowerCase().compareTo(
+                b.studentName.toLowerCase(),
+              ),
+        );
+      }
+    }
+    return map;
   }
 
   Future<void> openAddAssignment() async {
@@ -94,7 +131,8 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           title: const Text('Delete Assignment'),
           content: Text(
             'Remove class assignment for ${student.studentName}?',
@@ -140,6 +178,10 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final folders = _folders;
+    final sessions = folders.keys.toList()
+      ..sort((a, b) => b.compareTo(a)); // newer sessions first
+
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
@@ -198,15 +240,6 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
                       Icon(Icons.search_rounded, color: Colors.grey.shade500),
                   border: InputBorder.none,
                   contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                  suffixIcon: searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.clear_rounded),
-                          onPressed: () {
-                            searchController.clear();
-                            searchStudent('');
-                          },
-                        )
-                      : null,
                 ),
               ),
             ),
@@ -216,153 +249,120 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : filteredStudents.isEmpty
                     ? Center(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(Icons.class_outlined,
-                                size: 56, color: Colors.grey.shade400),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No assignments found',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ],
+                        child: Text(
+                          'No assigned students',
+                          style: TextStyle(color: Colors.grey.shade600),
                         ),
                       )
                     : ListView.builder(
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                        itemCount: filteredStudents.length,
-                        itemBuilder: (context, index) {
-                          final student = filteredStudents[index];
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 100),
+                        itemCount: sessions.length,
+                        itemBuilder: (context, sIndex) {
+                          final session = sessions[sIndex];
+                          final classMap = folders[session]!;
+                          final classNames = classMap.keys.toList()..sort();
+                          final sessionCount = classMap.values
+                              .fold<int>(0, (n, list) => n + list.length);
 
-                          final realIndex = students.indexWhere(
-                            (item) =>
-                                item.admissionNo == student.admissionNo &&
-                                item.className == student.className &&
-                                item.session == student.session,
-                          );
-
-                          final initial = student.studentName.isNotEmpty
-                              ? student.studentName[0].toUpperCase()
-                              : '?';
-
-                          return Container(
+                          return Card(
                             margin: const EdgeInsets.only(bottom: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                              border: Border.all(color: Colors.grey.shade200),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.035),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
+                            elevation: 0,
+                            color: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              side: BorderSide(color: Colors.grey.shade200),
                             ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 48,
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
-                                        colors: [
-                                          Color(0xFF1D4ED8),
-                                          Color(0xFF3B82F6),
-                                        ],
-                                      ),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: Text(
-                                      initial,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w800,
-                                        fontSize: 18,
-                                      ),
-                                    ),
+                            child: ExpansionTile(
+                              initiallyExpanded: sessions.length == 1,
+                              leading: const Icon(
+                                Icons.folder_rounded,
+                                color: Color(0xFFD97706),
+                              ),
+                              title: Text(
+                                session,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w800,
+                                  fontSize: 15,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '$sessionCount student(s) · ${classNames.length} class(es)',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              children: classNames.map((className) {
+                                final list = classMap[className]!;
+                                final key = _folderKey(session, className);
+                                final open = _expanded.contains(key);
+
+                                return Padding(
+                                  padding: const EdgeInsets.only(
+                                    left: 8,
+                                    right: 8,
+                                    bottom: 8,
                                   ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          student.studentName,
+                                  child: Material(
+                                    color: const Color(0xFFF8FAFC),
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: Theme(
+                                      data: Theme.of(context).copyWith(
+                                        dividerColor: Colors.transparent,
+                                      ),
+                                      child: ExpansionTile(
+                                        initiallyExpanded: open ||
+                                            searchController.text
+                                                .trim()
+                                                .isNotEmpty,
+                                        onExpansionChanged: (v) {
+                                          setState(() {
+                                            if (v) {
+                                              _expanded.add(key);
+                                            } else {
+                                              _expanded.remove(key);
+                                            }
+                                          });
+                                        },
+                                        leading: const Icon(
+                                          Icons.folder_open_rounded,
+                                          color: _primary,
+                                          size: 22,
+                                        ),
+                                        title: Text(
+                                          className,
                                           style: const TextStyle(
                                             fontWeight: FontWeight.w700,
-                                            fontSize: 15,
-                                            color: Color(0xFF0F172A),
+                                            fontSize: 14,
                                           ),
                                         ),
-                                        const SizedBox(height: 3),
-                                        Text(
-                                          student.admissionNo,
+                                        subtitle: Text(
+                                          '${list.length} student(s)',
                                           style: TextStyle(
+                                            fontSize: 12,
                                             color: Colors.grey.shade600,
-                                            fontSize: 12.5,
                                           ),
                                         ),
-                                        const SizedBox(height: 8),
-                                        Wrap(
-                                          spacing: 6,
-                                          runSpacing: 6,
-                                          children: [
-                                            _chip(
-                                              student.className,
-                                              const Color(0xFFEFF6FF),
-                                              const Color(0xFF1D4ED8),
-                                            ),
-                                            _chip(
-                                              student.session,
-                                              const Color(0xFFF0FDF4),
-                                              const Color(0xFF15803D),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
+                                        children: list.map((student) {
+                                          final realIndex =
+                                              students.indexWhere(
+                                            (e) =>
+                                                e.admissionNo ==
+                                                    student.admissionNo &&
+                                                e.session == student.session &&
+                                                e.className ==
+                                                    student.className,
+                                          );
+                                          return _studentTile(
+                                            student,
+                                            realIndex,
+                                          );
+                                        }).toList(),
+                                      ),
                                     ),
                                   ),
-                                  PopupMenuButton<String>(
-                                    onSelected: (value) async {
-                                      if (realIndex == -1) return;
-                                      if (value == 'edit') {
-                                        await editAssignment(
-                                            student, realIndex);
-                                      }
-                                      if (value == 'promote') {
-                                        await openPromotion();
-                                      }
-                                      if (value == 'delete') {
-                                        await deleteAssignment(
-                                            student, realIndex);
-                                      }
-                                    },
-                                    itemBuilder: (_) => const [
-                                      PopupMenuItem(
-                                        value: 'edit',
-                                        child: Text('Edit'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'promote',
-                                        child: Text('Promote'),
-                                      ),
-                                      PopupMenuItem(
-                                        value: 'delete',
-                                        child: Text('Delete'),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
+                                );
+                              }).toList(),
                             ),
                           );
                         },
@@ -373,20 +373,49 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
     );
   }
 
-  Widget _chip(String text, Color bg, Color fg) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Text(
-        text,
-        style: TextStyle(
-          fontSize: 11.5,
-          fontWeight: FontWeight.w600,
-          color: fg,
+  Widget _studentTile(StudentClass student, int realIndex) {
+    final initial = student.studentName.isNotEmpty
+        ? student.studentName[0].toUpperCase()
+        : '?';
+
+    return ListTile(
+      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 2),
+      leading: CircleAvatar(
+        backgroundColor: _primary.withValues(alpha: 0.12),
+        child: Text(
+          initial,
+          style: const TextStyle(
+            color: _primary,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+      ),
+      title: Text(
+        student.studentName,
+        style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 14),
+      ),
+      subtitle: Text(
+        student.admissionNo,
+        style: TextStyle(color: Colors.grey.shade600, fontSize: 12),
+      ),
+      trailing: PopupMenuButton<String>(
+        onSelected: (value) async {
+          if (realIndex == -1) return;
+          if (value == 'edit') {
+            await editAssignment(student, realIndex);
+          }
+          if (value == 'promote') {
+            await openPromotion();
+          }
+          if (value == 'delete') {
+            await deleteAssignment(student, realIndex);
+          }
+        },
+        itemBuilder: (_) => const [
+          PopupMenuItem(value: 'edit', child: Text('Edit')),
+          PopupMenuItem(value: 'promote', child: Text('Promote')),
+          PopupMenuItem(value: 'delete', child: Text('Delete')),
+        ],
       ),
     );
   }
