@@ -9,6 +9,7 @@ class Permissions {
   static const String resultEntry = 'result_entry';
   static const String broadsheet = 'broadsheet';
   static const String reportCards = 'report_cards';
+  static const String transcript = 'transcript';
   static const String promotion = 'promotion';
   static const String attendance = 'attendance';
   static const String timetable = 'timetable';
@@ -45,6 +46,8 @@ class Permissions {
           dashboard,
           resultEntry,
           broadsheet,
+          reportCards,
+          transcript,
           attendance,
           timetable,
           classAverages,

@@ -11,6 +11,7 @@ import '../screens/dashboard/dashboard_screen.dart';
 import '../screens/fees/fees_dashboard_screen.dart';
 import '../screens/promotion/student_promotion_screen.dart';
 import '../screens/report_card/generate_report_card_screen.dart';
+import '../screens/transcript/generate_transcript_screen.dart';
 import '../screens/results/broadsheet_screen.dart';
 import '../screens/results/class_term_averages_screen.dart';
 import '../screens/results/result_entry_screen.dart';
@@ -201,6 +202,13 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
       label: 'Report Cards',
       icon: Icons.description_rounded,
       page: GenerateReportCardScreen(),
+      section: 'RESULTS',
+    ),
+    _NavItem(
+      key: Permissions.transcript,
+      label: 'Transcript',
+      icon: Icons.history_edu_rounded,
+      page: GenerateTranscriptScreen(),
       section: 'RESULTS',
     ),
     _NavItem(

@@ -13,11 +13,8 @@ class ResultStorage {
     final box = Hive.box<Map>(boxName);
 
     final admissionNo = result.admissionNo.trim().toLowerCase();
-
     final subjectCode = result.subjectCode.trim().toLowerCase();
-
     final session = result.session.trim().toLowerCase();
-
     final term = result.term.trim().toLowerCase();
 
     for (int i = 0; i < box.length; i++) {
