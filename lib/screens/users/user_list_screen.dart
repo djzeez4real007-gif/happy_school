@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/permissions.dart';
-
 import '../../core/theme/app_colors.dart';
-
 import '../../models/app_user.dart';
 import '../../services/auth_service.dart';
 import '../../services/user_storage.dart';
@@ -19,12 +17,31 @@ class UserListScreen extends StatefulWidget {
 class _UserListScreenState extends State<UserListScreen> {
   final searchController = TextEditingController();
   String query = '';
-
   List<AppUser> users = [];
   bool loading = true;
+  final Set<String> _expanded = {
+    'admin',
+    'principal',
+    'class_teacher',
+    'subject_teacher',
+    'accountant',
+    'parent',
+    'student',
+    'other',
+  };
 
-  
   static const Color _primary = Color(0xFF1D4ED8);
+
+  /// Display order of role folders
+  static const _roleOrder = [
+    'admin',
+    'principal',
+    'class_teacher',
+    'subject_teacher',
+    'accountant',
+    'parent',
+    'student',
+  ];
 
   @override
   void initState() {
@@ -32,7 +49,14 @@ class _UserListScreenState extends State<UserListScreen> {
     loadUsers();
   }
 
+  @override
+  void dispose() {
+    searchController.dispose();
+    super.dispose();
+  }
+
   Future<void> loadUsers() async {
+    setState(() => loading = true);
     final data = await UserStorage.getUsers();
     data.sort(
       (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()),
@@ -60,8 +84,7 @@ class _UserListScreenState extends State<UserListScreen> {
       );
       return;
     }
-    if (actor != null &&
-        !Permissions.canDeleteUser(actor.role, user.role)) {
+    if (actor != null && !Permissions.canDeleteUser(actor.role, user.role)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Only the Administrator can delete users'),
@@ -109,8 +132,31 @@ class _UserListScreenState extends State<UserListScreen> {
         return const Color(0xFFD97706);
       case 'parent':
         return const Color(0xFF059669);
+      case 'student':
+        return const Color(0xFF2563EB);
       default:
         return Colors.grey.shade700;
+    }
+  }
+
+  IconData _roleIcon(String role) {
+    switch (role) {
+      case 'admin':
+        return Icons.admin_panel_settings_rounded;
+      case 'principal':
+        return Icons.account_balance_rounded;
+      case 'class_teacher':
+        return Icons.class_rounded;
+      case 'subject_teacher':
+        return Icons.menu_book_rounded;
+      case 'accountant':
+        return Icons.payments_rounded;
+      case 'parent':
+        return Icons.family_restroom_rounded;
+      case 'student':
+        return Icons.school_rounded;
+      default:
+        return Icons.folder_rounded;
     }
   }
 
@@ -126,8 +172,23 @@ class _UserListScreenState extends State<UserListScreen> {
         .toList();
   }
 
+  Map<String, List<AppUser>> get _grouped {
+    final map = <String, List<AppUser>>{};
+    for (final u in filteredUsers) {
+      final key = _roleOrder.contains(u.role) ? u.role : 'other';
+      map.putIfAbsent(key, () => []).add(u);
+    }
+    return map;
+  }
+
   @override
   Widget build(BuildContext context) {
+    final grouped = _grouped;
+    final keys = [
+      ..._roleOrder.where((k) => grouped.containsKey(k)),
+      if (grouped.containsKey('other')) 'other',
+    ];
+
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
@@ -169,109 +230,115 @@ class _UserListScreenState extends State<UserListScreen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      const Text(
+                        'Register staff under Register, then create\n'
+                        'their login here with Add User.',
+                        textAlign: TextAlign.center,
+                      ),
                     ],
                   ),
                 )
               : Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-            child: TextField(
-              controller: searchController,
-              decoration: const InputDecoration(
-                hintText: 'Search name, username, role…',
-                prefixIcon: Icon(Icons.search),
-              ),
-              onChanged: (v) => setState(() => query = v),
-            ),
-          ),
-          Expanded(
-            child: ListView.builder(
-                  padding: const EdgeInsets.fromLTRB(16, 16, 16, 88),
-                  itemCount: filteredUsers.length,
-                  itemBuilder: (context, index) {
-                    final user = filteredUsers[index];
-                    final color = _roleColor(user.role);
-                    final initial = user.fullName.isNotEmpty
-                        ? user.fullName[0].toUpperCase()
-                        : '?';
-
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: user.isActive
-                              ? Colors.grey.shade200
-                              : Colors.red.shade100,
-                        ),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.035),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                      child: TextField(
+                        controller: searchController,
+                        decoration: InputDecoration(
+                          hintText: 'Search name, username, role…',
+                          prefixIcon: const Icon(Icons.search),
+                          filled: true,
+                          fillColor: AppColors.card(context),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(14),
+                            borderSide: BorderSide.none,
                           ),
-                        ],
+                        ),
+                        onChanged: (v) => setState(() => query = v),
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        borderRadius: BorderRadius.circular(16),
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(16),
-                          onTap: () => openForm(user: user),
-                          child: Padding(
-                            padding: const EdgeInsets.all(14),
-                            child: Row(
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      child: Text(
+                        'Staff registered under Register are not logins yet. '
+                        'Use Add User and link the teacher to create a login.',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppColors.textSecondary(context),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                        itemCount: keys.length,
+                        itemBuilder: (context, i) {
+                          final role = keys[i];
+                          final list = grouped[role] ?? [];
+                          final open = _expanded.contains(role);
+                          final color = _roleColor(role);
+                          final label = role == 'other'
+                              ? 'Other'
+                              : AppUser.roleLabel(role);
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            decoration: BoxDecoration(
+                              color: AppColors.card(context),
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: AppColors.cardBorder(context),
+                              ),
+                            ),
+                            child: Column(
                               children: [
-                                Container(
-                                  width: 50,
-                                  height: 50,
-                                  decoration: BoxDecoration(
-                                    color: color.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  alignment: Alignment.center,
-                                  child: Text(
-                                    initial,
-                                    style: TextStyle(
-                                      color: color,
-                                      fontWeight: FontWeight.w800,
-                                      fontSize: 18,
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        user.fullName,
-                                        style: const TextStyle(
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: 15,
-                                          color: Color(0xFF0F172A),
-                                        ),
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: () {
+                                      setState(() {
+                                        if (open) {
+                                          _expanded.remove(role);
+                                        } else {
+                                          _expanded.add(role);
+                                        }
+                                      });
+                                    },
+                                    child: Padding(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 14,
+                                        vertical: 12,
                                       ),
-                                      const SizedBox(height: 3),
-                                      Text(
-                                        '@${user.username}',
-                                        style: TextStyle(
-                                          color: Colors.grey.shade600,
-                                          fontSize: 12.5,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 8),
-                                      Wrap(
-                                        spacing: 6,
-                                        runSpacing: 6,
+                                      child: Row(
                                         children: [
+                                          Container(
+                                            width: 44,
+                                            height: 44,
+                                            decoration: BoxDecoration(
+                                              color:
+                                                  color.withValues(alpha: 0.12),
+                                              borderRadius:
+                                                  BorderRadius.circular(12),
+                                            ),
+                                            child: Icon(_roleIcon(role),
+                                                color: color),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              label,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w900,
+                                                fontSize: 15,
+                                              ),
+                                            ),
+                                          ),
                                           Container(
                                             padding: const EdgeInsets.symmetric(
                                               horizontal: 10,
-                                              vertical: 3,
+                                              vertical: 4,
                                             ),
                                             decoration: BoxDecoration(
                                               color:
@@ -280,76 +347,89 @@ class _UserListScreenState extends State<UserListScreen> {
                                                   BorderRadius.circular(20),
                                             ),
                                             child: Text(
-                                              AppUser.roleLabel(user.role),
+                                              '${list.length}',
                                               style: TextStyle(
-                                                fontSize: 11.5,
-                                                fontWeight: FontWeight.w700,
                                                 color: color,
+                                                fontWeight: FontWeight.w900,
                                               ),
                                             ),
                                           ),
-                                          if (!user.isActive)
-                                            Container(
-                                              padding:
-                                                  const EdgeInsets.symmetric(
-                                                horizontal: 10,
-                                                vertical: 3,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: const Color(0xFFFEE2E2),
-                                                borderRadius:
-                                                    BorderRadius.circular(20),
-                                              ),
-                                              child: const Text(
-                                                'Disabled',
-                                                style: TextStyle(
-                                                  fontSize: 11.5,
-                                                  fontWeight: FontWeight.w700,
-                                                  color: Color(0xFFB91C1C),
-                                                ),
-                                              ),
-                                            ),
+                                          const SizedBox(width: 6),
+                                          Icon(
+                                            open
+                                                ? Icons.expand_less_rounded
+                                                : Icons.expand_more_rounded,
+                                            color: Colors.grey,
+                                          ),
                                         ],
                                       ),
-                                    ],
+                                    ),
                                   ),
                                 ),
-                                PopupMenuButton<String>(
-                                  onSelected: (value) {
-                                    if (value == 'edit') openForm(user: user);
-                                    if (value == 'delete') confirmDelete(user);
-                                  },
-                                  itemBuilder: (_) {
-                                    final items = <PopupMenuEntry<String>>[
-                                      const PopupMenuItem(
-                                        value: 'edit',
-                                        child: Text('Edit'),
-                                      ),
-                                    ];
-                                    final role =
-                                        AuthService.currentUser?.role ?? '';
-                                    if (Permissions.canDeleteUser(role)) {
-                                      items.add(
-                                        const PopupMenuItem(
-                                          value: 'delete',
-                                          child: Text('Delete'),
+                                if (open) ...[
+                                  const Divider(height: 1),
+                                  if (list.isEmpty)
+                                    const Padding(
+                                      padding: EdgeInsets.all(16),
+                                      child: Text('No users in this folder'),
+                                    )
+                                  else
+                                    ...list.map((user) {
+                                      final initial = user.fullName.isNotEmpty
+                                          ? user.fullName[0].toUpperCase()
+                                          : '?';
+                                      return ListTile(
+                                        onTap: () => openForm(user: user),
+                                        leading: CircleAvatar(
+                                          backgroundColor:
+                                              color.withValues(alpha: 0.15),
+                                          child: Text(
+                                            initial,
+                                            style: TextStyle(
+                                              color: color,
+                                              fontWeight: FontWeight.w800,
+                                            ),
+                                          ),
+                                        ),
+                                        title: Text(
+                                          user.fullName,
+                                          style: const TextStyle(
+                                              fontWeight: FontWeight.w700),
+                                        ),
+                                        subtitle: Text(
+                                          '@${user.username}'
+                                          '${user.isActive ? '' : ' · Disabled'}',
+                                        ),
+                                        trailing: PopupMenuButton<String>(
+                                          onSelected: (v) {
+                                            if (v == 'edit') {
+                                              openForm(user: user);
+                                            } else if (v == 'delete') {
+                                              confirmDelete(user);
+                                            }
+                                          },
+                                          itemBuilder: (_) => [
+                                            const PopupMenuItem(
+                                              value: 'edit',
+                                              child: Text('Edit'),
+                                            ),
+                                            const PopupMenuItem(
+                                              value: 'delete',
+                                              child: Text('Delete'),
+                                            ),
+                                          ],
                                         ),
                                       );
-                                    }
-                                    return items;
-                                  },
-                                ),
+                                    }),
+                                ],
                               ],
                             ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
-                    );
-                  },
+                    ),
+                  ],
                 ),
-            ),
-          ],
-        ),
     );
   }
 }

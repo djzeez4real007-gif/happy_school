@@ -29,9 +29,13 @@ class Permissions {
   static bool canAccess(String role, String feature) {
     switch (role) {
       case 'admin':
-        return true;
-
       case 'principal':
+        // Full access except role-specific portals
+        if (feature == studentPortal ||
+            feature == parentPortal ||
+            feature == myTeaching) {
+          return false;
+        }
         return true;
 
       case 'class_teacher':

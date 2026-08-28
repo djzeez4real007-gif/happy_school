@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/announcement_marquee.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/teacher.dart';
@@ -125,6 +126,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                       ],
                     ),
                   ),
+                  const AnnouncementMarquee(),
                   const SizedBox(height: 14),
                   Row(
                     children: [

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/announcement_marquee.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -127,6 +128,7 @@ class _ClassTeacherDashboardScreenState
                       ],
                     ),
                   ),
+                  const AnnouncementMarquee(),
                   const SizedBox(height: 14),
                   Row(
                     children: [

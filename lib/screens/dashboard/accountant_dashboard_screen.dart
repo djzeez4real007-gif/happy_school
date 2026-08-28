@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/announcement_marquee.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -120,6 +121,24 @@ class _AccountantDashboardScreenState extends State<AccountantDashboardScreen> {
                         ),
                       ],
                     ),
+                  ),
+                  const AnnouncementMarquee(),
+                  const SizedBox(height: 14),
+                  DropdownButtonFormField<String>(
+                    value: Sessions.list().contains(session) ? session : null,
+                    decoration: const InputDecoration(
+                      labelText: 'Session',
+                      border: OutlineInputBorder(),
+                      isDense: true,
+                    ),
+                    items: Sessions.list()
+                        .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                        .toList(),
+                    onChanged: (v) {
+                      if (v == null) return;
+                      setState(() => session = v);
+                      _load();
+                    },
                   ),
                   const SizedBox(height: 14),
                   Row(

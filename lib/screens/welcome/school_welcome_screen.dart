@@ -21,6 +21,7 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
   late final AnimationController _fadeCtrl;
   late final AnimationController _slideCtrl;
   late final AnimationController _pulseCtrl;
+  late final AnimationController _loginPulse;
   int _page = 0;
   Timer? _timer;
   List<WelcomeSlide> _slides = [];
@@ -41,6 +42,10 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
     _pulseCtrl = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 2200),
+    )..repeat(reverse: true);
+    _loginPulse = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
     )..repeat(reverse: true);
 
     _loadSlides();
@@ -81,6 +86,7 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
     _fadeCtrl.dispose();
     _slideCtrl.dispose();
     _pulseCtrl.dispose();
+    _loginPulse.dispose();
     super.dispose();
   }
 
@@ -291,7 +297,11 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
                       const SizedBox(height: 20),
                       Align(
                         alignment: Alignment.center,
-                        child: SizedBox(
+                        child: ScaleTransition(
+                          scale: Tween<double>(begin: 1.0, end: 1.05).animate(
+                            CurvedAnimation(parent: _loginPulse, curve: Curves.easeInOut),
+                          ),
+                          child: SizedBox(
                           width: 200,
                           height: 42,
                           child: ElevatedButton(
@@ -321,6 +331,7 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
                               ],
                             ),
                           ),
+                        ),
                         ),
                       ),
                       const SizedBox(height: 16),

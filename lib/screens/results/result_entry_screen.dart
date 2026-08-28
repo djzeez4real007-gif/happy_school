@@ -89,9 +89,11 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
       if (user != null &&
           user.role == 'class_teacher' &&
           (user.linkedTeacherId ?? '').isNotEmpty) {
-        filtered = filtered
-            .where((c) => c.teacherId == user.linkedTeacherId)
-            .toList();
+        final lid = user.linkedTeacherId!.trim().toLowerCase();
+        filtered = filtered.where((c) {
+          final tid = c.teacherId.trim().toLowerCase();
+          return tid == lid || tid.contains(lid) || lid.contains(tid);
+        }).toList();
       }
       // Subject teachers can pick any class; subjects are restricted below.
 

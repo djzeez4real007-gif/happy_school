@@ -38,7 +38,16 @@ class _AssignTeacherSubjectsScreenState
     setState(() => loading = true);
     final t = await TeacherStorage.getTeachers();
     t.sort((a, b) => a.fullName.compareTo(b.fullName));
-    final s = await SubjectStorage.getSubjects();
+    final raw = await SubjectStorage.getSubjects();
+    final seen = <String>{};
+    final s = <Subject>[];
+    for (final x in raw) {
+      final code = x.subjectCode.trim().toLowerCase();
+      final key = code.isNotEmpty ? code : x.subjectName.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      s.add(x);
+    }
     s.sort((a, b) => a.subjectName.compareTo(b.subjectName));
     if (!mounted) return;
     setState(() {

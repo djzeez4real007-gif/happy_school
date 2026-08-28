@@ -50,7 +50,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
     final subject = Subject(
       subjectName: subjectNameController.text.trim(),
       subjectCode: subjectCodeController.text.trim(),
-      studentClass: studentClass,
+      studentClass: '',
     );
     try {
       if (isEdit) {
@@ -99,7 +99,7 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
             PremiumForm.header(
               context,
               title: isEdit ? 'Edit Subject' : 'Register Subject',
-              subtitle: 'Name · Code · Class level',
+              subtitle: 'Subject name and code',
               icon: Icons.menu_book_rounded,
               gradient: const [Color(0xFF6D28D9), Color(0xFFA78BFA)],
             ),
@@ -125,20 +125,6 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
                   ),
                   validator: (v) =>
                       (v == null || v.trim().isEmpty) ? 'Enter subject code' : null,
-                ),
-                const SizedBox(height: 14),
-                DropdownButtonFormField<String>(
-                  value: studentClass,
-                  decoration: const InputDecoration(
-                    labelText: 'Class',
-                    prefixIcon: Icon(Icons.school_rounded),
-                  ),
-                  items: classes
-                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                      .toList(),
-                  onChanged: (v) {
-                    if (v != null) setState(() => studentClass = v);
-                  },
                 ),
                 const SizedBox(height: 22),
                 PremiumForm.primaryButton(

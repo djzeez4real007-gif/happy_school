@@ -1,5 +1,6 @@
 
 import 'package:flutter/material.dart';
+import '../../widgets/announcement_marquee.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../services/auth_service.dart';
@@ -94,6 +95,7 @@ class _ParentHomeDashboardState extends State<ParentHomeDashboard> {
                       ],
                     ),
                   ),
+                  const AnnouncementMarquee(),
                   const SizedBox(height: 16),
                   if (children.isEmpty)
                     const Text(

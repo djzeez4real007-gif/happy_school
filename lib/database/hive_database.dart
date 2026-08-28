@@ -56,6 +56,9 @@ class HiveDatabase {
     await Hive.openBox<Map>('timetables');
     await Hive.openBox('timetable_settings');
     await Hive.openBox('student_portal');
+    if (!Hive.isBoxOpen('announcements')) {
+      await Hive.openBox('announcements');
+    }
 
     await SubjectStorage.seedDefaultSubjects();
 

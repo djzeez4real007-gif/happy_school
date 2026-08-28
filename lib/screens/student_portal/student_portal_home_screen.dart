@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/student.dart';
 import '../../services/auth_service.dart';
 import '../../services/student_class_storage.dart';
-import '../../services/student_fee_payment_storage.dart';
 import '../../services/student_storage.dart';
+import '../../widgets/announcement_marquee.dart';
 import 'student_fees_screen.dart';
 import 'student_profile_screen.dart';
 import 'student_results_screen.dart';
@@ -23,7 +22,6 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
   bool loading = true;
   Student? student;
   String className = '—';
-  double totalPaid = 0;
 
   String get admissionNo {
     final u = AuthService.currentUser;
@@ -56,8 +54,7 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
 
     String cls = '—';
     try {
-      final history =
-          await StudentClassStorage.getStudentHistory(adm);
+      final history = await StudentClassStorage.getStudentHistory(adm);
       if (history.isNotEmpty) {
         history.sort((a, b) => b.session.compareTo(a.session));
         cls = history.first.className;
@@ -67,16 +64,10 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
       }
     } catch (_) {}
 
-    double paid = 0;
-    try {
-      paid = await StudentFeePaymentStorage.totalPaid(adm);
-    } catch (_) {}
-
     if (!mounted) return;
     setState(() {
       student = s;
       className = cls;
-      totalPaid = paid;
       loading = false;
     });
   }
@@ -91,107 +82,112 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
           ? const Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
-              child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+              child: Stack(
                 children: [
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
-                      ),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        const Text(
-                          'Student portal',
-                          style: TextStyle(color: Colors.white70, fontSize: 13),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          name.isEmpty ? 'Student' : name,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w900,
-                            fontSize: 22,
+                  // Faint school logo watermark
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: Center(
+                        child: Opacity(
+                          opacity: 0.06,
+                          child: Image.asset(
+                            'assets/images/school_logo.png',
+                            width: 280,
+                            fit: BoxFit.contain,
+                            errorBuilder: (_, __, ___) => Icon(
+                              Icons.school_rounded,
+                              size: 200,
+                              color: Colors.black.withValues(alpha: 0.08),
+                            ),
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Text(
-                          'Admission: $admissionNo',
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                        Text(
-                          'Class: $className',
-                          style: const TextStyle(color: Colors.white70),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  const SizedBox(height: 14),
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.payments_rounded,
-                            color: Color(0xFF2563EB)),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            'Total fees paid (recorded): ₦${NumberFormat('#,##0').format(totalPaid)}',
-                            style: const TextStyle(fontWeight: FontWeight.w700),
+                  ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+                          ),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Student portal',
+                              style: TextStyle(
+                                  color: Colors.white70, fontSize: 13),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              name.isEmpty ? 'Student' : name,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 22,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Admission: $admissionNo',
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                            Text(
+                              'Class: $className',
+                              style: const TextStyle(color: Colors.white70),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const AnnouncementMarquee(),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Quick links',
+                        style: TextStyle(
+                          fontWeight: FontWeight.w900,
+                          color: AppColors.textPrimary(context),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      _link(
+                        Icons.assessment_rounded,
+                        'My results',
+                        'Session & term scores',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StudentResultsScreen(),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'Quick links',
-                    style: TextStyle(
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.textPrimary(context),
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  _link(
-                    Icons.assessment_rounded,
-                    'My results',
-                    'Session & term scores',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const StudentResultsScreen(),
                       ),
-                    ),
-                  ),
-                  _link(
-                    Icons.payments_rounded,
-                    'My fees',
-                    'Payments and balance',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const StudentFeesScreen(),
+                      _link(
+                        Icons.payments_rounded,
+                        'My fees',
+                        'Payments and balance',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StudentFeesScreen(),
+                          ),
+                        ),
                       ),
-                    ),
-                  ),
-                  _link(
-                    Icons.person_rounded,
-                    'My profile',
-                    'Personal details',
-                    () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const StudentProfileScreen(),
+                      _link(
+                        Icons.person_rounded,
+                        'My profile',
+                        'Biodata & passport',
+                        () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const StudentProfileScreen(),
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ],
               ),

@@ -31,11 +31,21 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
   Future<void> loadSubjects() async {
     setState(() => loading = true);
     final data = await SubjectStorage.getSubjects();
-    data.sort((a, b) => a.subjectName.toLowerCase().compareTo(b.subjectName.toLowerCase()));
+    // Unique by subject code (no class-based duplicates)
+    final seen = <String>{};
+    final unique = <Subject>[];
+    for (final s in data) {
+      final code = s.subjectCode.trim().toLowerCase();
+      final key = code.isNotEmpty ? code : s.subjectName.trim().toLowerCase();
+      if (key.isEmpty || seen.contains(key)) continue;
+      seen.add(key);
+      unique.add(s);
+    }
+    unique.sort((a, b) => a.subjectName.toLowerCase().compareTo(b.subjectName.toLowerCase()));
     if (!mounted) return;
     setState(() {
-      subjects = data;
-      filtered = data;
+      subjects = unique;
+      filtered = unique;
       loading = false;
     });
   }
@@ -48,8 +58,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
       } else {
         filtered = subjects.where((s) {
           return s.subjectName.toLowerCase().contains(q) ||
-              s.subjectCode.toLowerCase().contains(q) ||
-              s.studentClass.toLowerCase().contains(q);
+              s.subjectCode.toLowerCase().contains(q);
         }).toList();
       }
     });
@@ -167,7 +176,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                           final realIndex = subjects.indexWhere(
                             (s) =>
                                 s.subjectCode == subject.subjectCode &&
-                                s.studentClass == subject.studentClass,
+                                s.studentClass == '',
                           );
 
                           return Container(
@@ -228,9 +237,9 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                                               const Color(0xFF6D28D9),
                                             ),
                                             _chip(
-                                              subject.studentClass.isEmpty
+                                              ''.isEmpty
                                                   ? 'All classes'
-                                                  : subject.studentClass,
+                                                  : '',
                                               const Color(0xFFEFF6FF),
                                               const Color(0xFF1D4ED8),
                                             ),
