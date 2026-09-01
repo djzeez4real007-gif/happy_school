@@ -181,13 +181,58 @@ class _NonTeachingStaffListScreenState
                                   if (s.phone.isNotEmpty) s.phone,
                                 ].join(' · '),
                               ),
-                              trailing: Icon(
-                                s.active
-                                    ? Icons.check_circle
-                                    : Icons.pause_circle_filled,
-                                color: s.active
-                                    ? const Color(0xFF059669)
-                                    : Colors.grey,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    s.active
+                                        ? Icons.check_circle
+                                        : Icons.pause_circle_filled,
+                                    color: s.active
+                                        ? const Color(0xFF059669)
+                                        : Colors.grey,
+                                  ),
+                                  IconButton(
+                                    tooltip: 'Delete',
+                                    icon: const Icon(
+                                      Icons.delete_outline,
+                                      color: Colors.red,
+                                    ),
+                                    onPressed: () async {
+                                      final ok = await showDialog<bool>(
+                                        context: context,
+                                        builder: (ctx) => AlertDialog(
+                                          title: const Text('Delete staff'),
+                                          content:
+                                              Text('Delete ${s.fullName}?'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, false),
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(ctx, true),
+                                              child: const Text(
+                                                'Delete',
+                                                style: TextStyle(
+                                                    color: Colors.red),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                      if (ok == true) {
+                                        final idx = staff.indexOf(s);
+                                        if (idx >= 0) {
+                                          await StaffStorage.deleteAt(idx);
+                                          await _load();
+                                        }
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
                               onTap: () async {
                                 final idx = StaffStorage.indexOfId(s.id);

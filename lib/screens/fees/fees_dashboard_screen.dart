@@ -1,5 +1,3 @@
-import '../../core/permissions.dart';
-import '../../services/auth_service.dart';
 import 'package:flutter/material.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -33,6 +31,9 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
 
   bool loading = true;
   double collected = 0;
+  double cashCollected = 0;
+  double posCollected = 0;
+  double transferCollected = 0;
   double outstanding = 0;
   int debtors = 0;
   int studentsPaid = 0;
@@ -48,8 +49,8 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
     classes = await ClassStorage.getClasses();
     classes.sort(
       (a, b) => a.fullClassName.toLowerCase().compareTo(
-            b.fullClassName.toLowerCase(),
-          ),
+        b.fullClassName.toLowerCase(),
+      ),
     );
     await loadStats();
   }
@@ -63,6 +64,14 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
         term: selectedTerm,
         classFilter: classFilter,
       );
+      final byMethod = await FeesDashboardService.collectedByMethod(
+        session: selectedSession,
+        term: selectedTerm,
+        classFilter: classFilter,
+      );
+      cashCollected = byMethod['cash'] ?? 0;
+      posCollected = byMethod['pos'] ?? 0;
+      transferCollected = byMethod['transfer'] ?? 0;
       outstanding = await FeesDashboardService.totalOutstanding(
         session: selectedSession,
         term: selectedTerm,
@@ -160,20 +169,6 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
       ),
     ];
 
-    // Principal: view-only — hide fee settings & receive payment
-    final canEditFees = Permissions.canEditFees(
-      AuthService.currentRole,
-    );
-    final visibleItems = canEditFees
-        ? items
-        : items
-            .where(
-              (e) =>
-                  e.title != 'Fee Settings' &&
-                  e.title != 'Receive Payment',
-            )
-            .toList();
-
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       body: RefreshIndicator(
@@ -209,8 +204,10 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
                         children: [
                           IconButton(
                             onPressed: () => Navigator.maybePop(context),
-                            icon: const Icon(Icons.arrow_back,
-                                color: Colors.white),
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: Colors.white,
+                            ),
                           ),
                           const Expanded(
                             child: Text(
@@ -224,8 +221,10 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
                           ),
                           IconButton(
                             onPressed: loadStats,
-                            icon: const Icon(Icons.refresh,
-                                color: Colors.white),
+                            icon: const Icon(
+                              Icons.refresh,
+                              color: Colors.white,
+                            ),
                           ),
                         ],
                       ),
@@ -295,10 +294,13 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
                         Row(
                           children: [
                             Expanded(
-                              child: _statBox(
+                              child: _statBoxWithBreakdown(
                                 'Collected',
                                 money(collected),
                                 Icons.payments_rounded,
+                                cash: money(cashCollected),
+                                pos: money(posCollected),
+                                transfer: money(transferCollected),
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -348,13 +350,10 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
                   mainAxisSpacing: 12,
                   childAspectRatio: 1.05,
                 ),
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final item = visibleItems[index];
-                    return _FeeCard(item: item);
-                  },
-                  childCount: visibleItems.length,
-                ),
+                delegate: SliverChildBuilderDelegate((context, index) {
+                  final item = items[index];
+                  return _FeeCard(item: item);
+                }, childCount: items.length),
               ),
             ),
           ],
@@ -390,6 +389,62 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
               .toList(),
           onChanged: onChanged,
         ),
+      ),
+    );
+  }
+
+  Widget _statBoxWithBreakdown(
+    String title,
+    String value,
+    IconData icon, {
+    required String cash,
+    required String pos,
+    required String transfer,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.8),
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.w900,
+              fontSize: 16,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Cash $cash  ·  POS $pos  ·  Transfer $transfer',
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.85),
+              fontSize: 10.5,
+              fontWeight: FontWeight.w600,
+              height: 1.3,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -464,10 +519,7 @@ class _FeeCard extends StatelessWidget {
       child: InkWell(
         borderRadius: BorderRadius.circular(18),
         onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => item.page),
-          );
+          Navigator.push(context, MaterialPageRoute(builder: (_) => item.page));
         },
         child: Container(
           padding: const EdgeInsets.all(16),

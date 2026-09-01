@@ -11,11 +11,14 @@ import 'package:share_plus/share_plus.dart';
 
 import '../models/result.dart';
 
+/// Formal beige academic transcript PDF.
 class TranscriptPdfService {
-  static const _navy = PdfColor.fromInt(0xFF0F172A);
-  static const _blue = PdfColor.fromInt(0xFF1D4ED8);
-  static const _slate = PdfColor.fromInt(0xFF64748B);
-  static const _line = PdfColor.fromInt(0xFFE2E8F0);
+  static const _beige = PdfColor.fromInt(0xFFF7F1E3);
+  static const _beigeDark = PdfColor.fromInt(0xFFE8DFC8);
+  static const _ink = PdfColor.fromInt(0xFF3D3226);
+  static const _muted = PdfColor.fromInt(0xFF7A6A55);
+  static const _line = PdfColor.fromInt(0xFFC9BBA0);
+  static const _headerBg = PdfColor.fromInt(0xFF5C4A32);
 
   static int _termOrder(String t) {
     final x = t.toLowerCase();
@@ -44,8 +47,7 @@ class TranscriptPdfService {
   }) async {
     final pdf = pw.Document();
     final logo = await _logo();
-    final generated =
-        DateFormat('dd MMM yyyy · hh:mm a').format(DateTime.now());
+    final issued = DateFormat('dd MMMM yyyy').format(DateTime.now());
 
     final grouped = <String, Map<String, List<Result>>>{};
     for (final r in results) {
@@ -53,12 +55,31 @@ class TranscriptPdfService {
       grouped[r.session]!.putIfAbsent(r.term, () => []);
       grouped[r.session]![r.term]!.add(r);
     }
-    final sessions = grouped.keys.toList()..sort((a, b) => b.compareTo(a));
+    final sessions = grouped.keys.toList()..sort();
+
+    double sumAll = 0;
+    int countAll = 0;
+    int passCount = 0;
+    for (final r in results) {
+      sumAll += r.total;
+      countAll++;
+      if (r.isPassed) passCount++;
+    }
+    final overallAvg = countAll == 0 ? 0.0 : sumAll / countAll;
+
+    // Use ONLY pageTheme (do not also set pageFormat/margin on MultiPage)
+    final theme = pw.PageTheme(
+      pageFormat: PdfPageFormat.a4,
+      margin: const pw.EdgeInsets.fromLTRB(32, 28, 32, 28),
+      buildBackground: (context) => pw.FullPage(
+        ignoreMargins: true,
+        child: pw.Container(color: _beige),
+      ),
+    );
 
     pdf.addPage(
       pw.MultiPage(
-        pageFormat: PdfPageFormat.a4,
-        margin: const pw.EdgeInsets.all(28),
+        pageTheme: theme,
         header: (ctx) => pw.Column(
           children: [
             pw.Row(
@@ -66,10 +87,11 @@ class TranscriptPdfService {
               children: [
                 if (logo != null)
                   pw.Container(
-                    width: 48,
-                    height: 48,
+                    width: 50,
+                    height: 50,
                     decoration: pw.BoxDecoration(
                       shape: pw.BoxShape.circle,
+                      border: pw.Border.all(color: _line, width: 1),
                       image: pw.DecorationImage(
                         image: pw.MemoryImage(logo),
                         fit: pw.BoxFit.cover,
@@ -78,18 +100,19 @@ class TranscriptPdfService {
                   )
                 else
                   pw.Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const pw.BoxDecoration(
+                    width: 50,
+                    height: 50,
+                    decoration: pw.BoxDecoration(
                       shape: pw.BoxShape.circle,
-                      color: _blue,
+                      border: pw.Border.all(color: _headerBg, width: 1.5),
                     ),
                     child: pw.Center(
                       child: pw.Text(
                         'HS',
                         style: pw.TextStyle(
-                          color: PdfColors.white,
+                          color: _headerBg,
                           fontWeight: pw.FontWeight.bold,
+                          fontSize: 13,
                         ),
                       ),
                     ),
@@ -97,44 +120,72 @@ class TranscriptPdfService {
                 pw.SizedBox(width: 12),
                 pw.Expanded(
                   child: pw.Column(
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
                     children: [
                       pw.Text(
                         'HAPPY SCHOOL',
+                        textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
-                          fontSize: 16,
-                          color: _navy,
+                          fontSize: 17,
+                          color: _headerBg,
+                          letterSpacing: 1.4,
                         ),
                       ),
+                      pw.SizedBox(height: 2),
                       pw.Text(
-                        'Official Academic Transcript',
-                        style: pw.TextStyle(color: _slate, fontSize: 10),
+                        'Secondary School · Academic Records Office',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(fontSize: 9, color: _muted),
+                      ),
+                      pw.Text(
+                        'Bolakale Street, Checking Point, Ilorin, Nigeria',
+                        textAlign: pw.TextAlign.center,
+                        style: pw.TextStyle(fontSize: 8, color: _muted),
                       ),
                     ],
                   ),
                 ),
+                pw.SizedBox(width: 50),
               ],
             ),
-            pw.SizedBox(height: 8),
-            pw.Divider(color: _line),
-            pw.SizedBox(height: 6),
+            pw.SizedBox(height: 10),
+            pw.Container(
+              width: double.infinity,
+              padding: const pw.EdgeInsets.symmetric(vertical: 7),
+              decoration: pw.BoxDecoration(
+                border: pw.Border(
+                  top: pw.BorderSide(color: _headerBg, width: 1.4),
+                  bottom: pw.BorderSide(color: _headerBg, width: 1.4),
+                ),
+              ),
+              child: pw.Text(
+                'OFFICIAL ACADEMIC TRANSCRIPT',
+                textAlign: pw.TextAlign.center,
+                style: pw.TextStyle(
+                  fontWeight: pw.FontWeight.bold,
+                  fontSize: 12,
+                  color: _headerBg,
+                  letterSpacing: 1.6,
+                ),
+              ),
+            ),
+            pw.SizedBox(height: 12),
           ],
         ),
         footer: (ctx) => pw.Column(
           children: [
-            pw.Divider(color: _line),
-            pw.SizedBox(height: 4),
+            pw.Divider(color: _line, thickness: 0.6),
+            pw.SizedBox(height: 3),
             pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
                 pw.Text(
-                  'Generated $generated',
-                  style: pw.TextStyle(color: _slate, fontSize: 8),
+                  'Official academic record · Happy School ERP',
+                  style: pw.TextStyle(fontSize: 7, color: _muted),
                 ),
                 pw.Text(
                   'Page ${ctx.pageNumber} of ${ctx.pagesCount}',
-                  style: pw.TextStyle(color: _slate, fontSize: 8),
+                  style: pw.TextStyle(fontSize: 7, color: _muted),
                 ),
               ],
             ),
@@ -142,95 +193,120 @@ class TranscriptPdfService {
         ),
         build: (ctx) {
           final widgets = <pw.Widget>[
-            pw.Container(
-              padding: const pw.EdgeInsets.all(12),
-              decoration: pw.BoxDecoration(
-                color: PdfColor.fromInt(0xFFF1F5F9),
-                borderRadius: pw.BorderRadius.circular(8),
+            pw.Text(
+              'Student Information',
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+                color: _headerBg,
               ),
-              child: pw.Column(
+            ),
+            pw.SizedBox(height: 6),
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: _beigeDark,
+                borderRadius: pw.BorderRadius.circular(4),
+                border: pw.Border.all(color: _line, width: 0.6),
+              ),
+              child: pw.Row(
                 crossAxisAlignment: pw.CrossAxisAlignment.start,
                 children: [
-                  pw.Text(
-                    '${student['fullName'] ?? ''}',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 14,
-                      color: _navy,
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        _info('Student Name', '${student['fullName'] ?? ''}'),
+                        _info(
+                            'Admission No.', '${student['admissionNo'] ?? ''}'),
+                        if ('${student['gender'] ?? ''}'.trim().isNotEmpty)
+                          _info('Gender', '${student['gender']}'),
+                        if ('${student['dateOfBirth'] ?? ''}'.trim().isNotEmpty)
+                          _info('Date of Birth', '${student['dateOfBirth']}'),
+                      ],
                     ),
                   ),
-                  pw.SizedBox(height: 4),
-                  pw.Text(
-                    'Admission No: ${student['admissionNo'] ?? ''}',
-                    style: const pw.TextStyle(fontSize: 10),
+                  pw.SizedBox(width: 14),
+                  pw.Expanded(
+                    child: pw.Column(
+                      crossAxisAlignment: pw.CrossAxisAlignment.start,
+                      children: [
+                        _info('Issuing Institution', 'Happy School'),
+                        _info('Document Type', 'Academic Transcript'),
+                        _info('Date Issued', issued),
+                        _info(
+                          'Record Status',
+                          results.isEmpty ? 'No results' : 'Active',
+                        ),
+                      ],
+                    ),
                   ),
-                  if ('${student['gender'] ?? ''}'.trim().isNotEmpty)
-                    pw.Text(
-                      'Gender: ${student['gender']}',
-                      style: const pw.TextStyle(fontSize: 10),
-                    ),
-                  if ('${student['dateOfBirth'] ?? ''}'.trim().isNotEmpty)
-                    pw.Text(
-                      'Date of birth: ${student['dateOfBirth']}',
-                      style: const pw.TextStyle(fontSize: 10),
-                    ),
                 ],
               ),
             ),
             pw.SizedBox(height: 14),
+            pw.Text(
+              'Academic Record',
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+                color: _headerBg,
+              ),
+            ),
+            pw.SizedBox(height: 8),
           ];
 
           if (results.isEmpty) {
-            widgets.add(pw.Text('No results recorded.'));
+            widgets.add(
+              pw.Text(
+                'No academic results recorded for this student.',
+                style: pw.TextStyle(fontSize: 9, color: _muted),
+              ),
+            );
           } else {
             for (final session in sessions) {
               final termsMap = grouped[session]!;
               final terms = termsMap.keys.toList()
                 ..sort((a, b) => _termOrder(a).compareTo(_termOrder(b)));
 
-              widgets.add(
-                pw.Text(
-                  'Session $session',
-                  style: pw.TextStyle(
-                    fontWeight: pw.FontWeight.bold,
-                    fontSize: 12,
-                    color: _blue,
-                  ),
-                ),
-              );
-              widgets.add(pw.SizedBox(height: 6));
-
               for (final term in terms) {
-                final list = termsMap[term]!;
+                final list = List<Result>.from(termsMap[term]!)
+                  ..sort((a, b) => a.subjectName.compareTo(b.subjectName));
                 final avg = list.isEmpty
                     ? 0.0
                     : list.map((r) => r.total).fold(0.0, (a, b) => a + b) /
                         list.length;
 
                 widgets.add(
-                  pw.Text(
-                    '$term  ·  Average ${avg.toStringAsFixed(1)}',
-                    style: pw.TextStyle(
-                      fontWeight: pw.FontWeight.bold,
-                      fontSize: 10,
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(bottom: 3),
+                    child: pw.Text(
+                      '$session  ·  $term',
+                      style: pw.TextStyle(
+                        fontWeight: pw.FontWeight.bold,
+                        fontSize: 9,
+                        color: _ink,
+                      ),
                     ),
                   ),
                 );
-                widgets.add(pw.SizedBox(height: 4));
+
                 widgets.add(
                   pw.Table.fromTextArray(
-                    headers: [
+                    headers: const [
                       'Subject',
+                      'Code',
                       'CA1',
                       'CA2',
                       'Exam',
                       'Total',
                       'Grade',
-                      'Remark'
+                      'Remark',
                     ],
                     data: list
                         .map((r) => [
                               r.subjectName,
+                              r.subjectCode,
                               r.ca1.toStringAsFixed(0),
                               r.ca2.toStringAsFixed(0),
                               r.exam.toStringAsFixed(0),
@@ -244,22 +320,95 @@ class TranscriptPdfService {
                       fontSize: 8,
                       color: PdfColors.white,
                     ),
-                    headerDecoration: const pw.BoxDecoration(color: _blue),
-                    cellStyle: const pw.TextStyle(fontSize: 8),
+                    headerDecoration:
+                        const pw.BoxDecoration(color: _headerBg),
+                    cellStyle: pw.TextStyle(fontSize: 8, color: _ink),
                     cellAlignment: pw.Alignment.centerLeft,
-                    border: pw.TableBorder.all(color: _line, width: 0.5),
+                    headerAlignment: pw.Alignment.centerLeft,
+                    border: pw.TableBorder.all(color: _line, width: 0.4),
+                    oddRowDecoration:
+                        const pw.BoxDecoration(color: _beigeDark),
                   ),
                 );
-                widgets.add(pw.SizedBox(height: 12));
+
+                widgets.add(
+                  pw.Padding(
+                    padding: const pw.EdgeInsets.only(top: 3, bottom: 10),
+                    child: pw.Align(
+                      alignment: pw.Alignment.centerRight,
+                      child: pw.Text(
+                        'Term average: ${avg.toStringAsFixed(1)}',
+                        style: pw.TextStyle(
+                          fontSize: 8,
+                          fontWeight: pw.FontWeight.bold,
+                          color: _muted,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
               }
             }
           }
 
-          widgets.add(pw.SizedBox(height: 16));
+          widgets.add(pw.SizedBox(height: 4));
           widgets.add(
             pw.Text(
-              'This is a computer-generated academic transcript from Happy School ERP.',
-              style: pw.TextStyle(color: _slate, fontSize: 8),
+              'Academic Summary',
+              style: pw.TextStyle(
+                fontWeight: pw.FontWeight.bold,
+                fontSize: 10,
+                color: _headerBg,
+              ),
+            ),
+          );
+          widgets.add(pw.SizedBox(height: 6));
+          widgets.add(
+            pw.Container(
+              padding: const pw.EdgeInsets.all(10),
+              decoration: pw.BoxDecoration(
+                color: _beigeDark,
+                borderRadius: pw.BorderRadius.circular(4),
+                border: pw.Border.all(color: _line, width: 0.6),
+              ),
+              child: pw.Row(
+                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+                children: [
+                  _summary('Subjects recorded', '$countAll'),
+                  _summary('Overall average', overallAvg.toStringAsFixed(1)),
+                  _summary('Subjects passed', '$passCount'),
+                  _summary(
+                    'Pass rate',
+                    countAll == 0
+                        ? '—'
+                        : '${((passCount / countAll) * 100).toStringAsFixed(0)}%',
+                  ),
+                ],
+              ),
+            ),
+          );
+
+          widgets.add(pw.SizedBox(height: 28));
+          widgets.add(
+            pw.Row(
+              mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+              children: [
+                _sign('Principal'),
+                _sign('Academic Officer'),
+              ],
+            ),
+          );
+
+          widgets.add(pw.SizedBox(height: 14));
+          widgets.add(
+            pw.Text(
+              'This transcript is a certified summary of the student’s academic performance. '
+              'Any alteration invalidates this document.',
+              style: pw.TextStyle(
+                fontSize: 7,
+                color: _muted,
+                fontStyle: pw.FontStyle.italic,
+              ),
             ),
           );
 
@@ -271,6 +420,76 @@ class TranscriptPdfService {
     return pdf.save();
   }
 
+  static pw.Widget _info(String label, String value) {
+    return pw.Padding(
+      padding: const pw.EdgeInsets.only(bottom: 3),
+      child: pw.RichText(
+        text: pw.TextSpan(
+          children: [
+            pw.TextSpan(
+              text: '$label: ',
+              style: pw.TextStyle(
+                fontSize: 8,
+                color: _muted,
+                fontWeight: pw.FontWeight.bold,
+              ),
+            ),
+            pw.TextSpan(
+              text: value.isEmpty ? '—' : value,
+              style: pw.TextStyle(fontSize: 8, color: _ink),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  static pw.Widget _summary(String label, String value) {
+    return pw.Column(
+      children: [
+        pw.Text(label, style: pw.TextStyle(fontSize: 7, color: _muted)),
+        pw.SizedBox(height: 2),
+        pw.Text(
+          value,
+          style: pw.TextStyle(
+            fontSize: 11,
+            fontWeight: pw.FontWeight.bold,
+            color: _ink,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static pw.Widget _sign(String title) {
+    return pw.Column(
+      children: [
+        pw.Container(
+          width: 140,
+          height: 28,
+          decoration: const pw.BoxDecoration(
+            border: pw.Border(
+              bottom: pw.BorderSide(color: _ink, width: 0.6),
+            ),
+          ),
+        ),
+        pw.SizedBox(height: 4),
+        pw.Text(
+          title,
+          style: pw.TextStyle(
+            fontSize: 8,
+            fontWeight: pw.FontWeight.bold,
+            color: _ink,
+          ),
+        ),
+        pw.Text(
+          'Signature & Date',
+          style: pw.TextStyle(fontSize: 7, color: _muted),
+        ),
+      ],
+    );
+  }
+
   static Future<void> printTranscript({
     required Map<String, dynamic> student,
     required List<Result> results,
@@ -279,7 +498,7 @@ class TranscriptPdfService {
     final name = '${student['fullName'] ?? 'Student'}_Transcript'
         .replaceAll(RegExp(r'[^\w\-]+'), '_');
     await Printing.layoutPdf(
-      onLayout: (format) async => bytes,
+      onLayout: (_) async => bytes,
       name: name,
     );
   }

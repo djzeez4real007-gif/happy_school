@@ -187,11 +187,8 @@ class _BroadsheetScreenState extends State<BroadsheetScreen> {
         if (a.session.trim() != selectedSession) return false;
         final aClass = a.className.trim().toLowerCase();
         final aNorm = normClass(a.className);
-        return aClass == selectedFull ||
-            aNorm == selectedNorm ||
-            aNorm == selectedBaseNorm ||
-            selectedNorm.startsWith(aNorm) ||
-            aNorm.startsWith(selectedBaseNorm);
+        // Strict: JSS1 A ≠ JSS1 B
+        return aClass == selectedFull || aNorm == selectedNorm;
       }).toList();
 
       assignedStudents.sort(
@@ -554,6 +551,9 @@ class _BroadsheetScreenState extends State<BroadsheetScreen> {
                         child: Text(n, overflow: TextOverflow.ellipsis),
                       ))
                   .toList(),
+              onTap: () {
+                loadClasses();
+              },
               onChanged: names.isEmpty
                   ? null
                   : (value) async {

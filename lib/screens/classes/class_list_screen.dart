@@ -52,10 +52,10 @@ class _ClassListScreenState extends State<ClassListScreen> {
   }
 
   /// Count students in this class **for the selected session only**.
+  /// Strict: JSS1 A and JSS1 C must not share students.
   int enrolledCount(dynamic schoolClass) {
     final full = schoolClass.fullClassName.trim().toLowerCase();
     final fullNorm = _normalize(schoolClass.fullClassName);
-    final baseNorm = _normalize(schoolClass.className.toString());
     final sessionNorm = selectedSession.trim().toLowerCase();
 
     final unique = <String>{};
@@ -66,21 +66,15 @@ class _ClassListScreenState extends State<ClassListScreen> {
       final assignedClass = a.className.trim().toLowerCase();
       final assignedNorm = _normalize(a.className);
 
-      // Skip non-class placements
       if (assignedClass == 'left' ||
           assignedClass == 'graduated' ||
           assignedClass == 'withdrawn') {
         continue;
       }
 
-      final matches = assignedClass == full ||
-          assignedNorm == fullNorm ||
-          assignedNorm == baseNorm ||
-          fullNorm.startsWith(assignedNorm) ||
-          assignedNorm.startsWith(baseNorm) ||
-          // e.g. assigned "JSS2" vs class "JSS2 A"
-          fullNorm.startsWith(baseNorm) && assignedNorm.startsWith(baseNorm) &&
-              (fullNorm.contains(assignedNorm) || assignedNorm.contains(baseNorm));
+      // Exact class name only (including arm/section letter)
+      final matches =
+          assignedClass == full || assignedNorm == fullNorm;
 
       if (matches) {
         final adm = a.admissionNo.trim().toLowerCase();

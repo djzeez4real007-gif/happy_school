@@ -20,11 +20,14 @@ import '../../services/class_subject_storage.dart';
 class StudentClassAssignmentScreen extends StatefulWidget {
   final StudentClass? studentClass;
   final int? index;
+  /// When opening from Unassigned list, lock this student.
+  final Student? preselectedStudent;
 
   const StudentClassAssignmentScreen({
     super.key,
     this.studentClass,
     this.index,
+    this.preselectedStudent,
   });
 
   @override
@@ -86,6 +89,16 @@ class _StudentClassAssignmentScreenState
 
       if (widget.studentClass!.session.isNotEmpty) {
         selectedSession = widget.studentClass!.session;
+      }
+    } else if (widget.preselectedStudent != null) {
+      try {
+        selectedStudent = students.firstWhere(
+          (e) =>
+              e.admissionNo.trim().toLowerCase() ==
+              widget.preselectedStudent!.admissionNo.trim().toLowerCase(),
+        );
+      } catch (_) {
+        selectedStudent = widget.preselectedStudent;
       }
     }
 

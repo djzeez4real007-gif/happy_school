@@ -5,6 +5,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/utils/sessions.dart';
 import '../../models/result.dart';
 import '../../services/auth_service.dart';
+import '../../services/result_storage.dart';
 
 class StudentResultsScreen extends StatefulWidget {
   const StudentResultsScreen({super.key});
@@ -42,26 +43,13 @@ class _StudentResultsScreenState extends State<StudentResultsScreen> {
 
   Future<void> _load() async {
     setState(() => loading = true);
-    final adm = admissionNo.trim().toLowerCase();
+    final adm = admissionNo.trim();
     List<Result> all = [];
     try {
-      if (!Hive.isBoxOpen('results')) {
-        try {
-          await Hive.openBox<Map>('results');
-        } catch (_) {
-          await Hive.openBox('results');
-        }
-      }
-      final box = Hive.box('results');
-      for (final raw in box.values) {
-        try {
-          final r = Result.fromMap(Map<String, dynamic>.from(raw as Map));
-          if (r.admissionNo.trim().toLowerCase() == adm) {
-            all.add(r);
-          }
-        } catch (_) {}
-      }
-    } catch (_) {}
+      all = await ResultStorage.getStudentResults(adm);
+    } catch (_) {
+      all = [];
+    }
 
     final filtered = all
         .where((r) =>

@@ -62,7 +62,7 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
       // Auto-expand matching folders when searching
       if (query.isNotEmpty) {
         for (final s in results) {
-          _expanded.add(_folderKey(s.session, s.className));
+          // folders stay closed unless user opens or searches
         }
       }
     });
@@ -273,7 +273,7 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
                               side: BorderSide(color: Colors.grey.shade200),
                             ),
                             child: ExpansionTile(
-                              initiallyExpanded: sessions.length == 1,
+                              initiallyExpanded: false,
                               leading: const Icon(
                                 Icons.folder_rounded,
                                 color: Color(0xFFD97706),
@@ -311,10 +311,7 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
                                         dividerColor: Colors.transparent,
                                       ),
                                       child: ExpansionTile(
-                                        initiallyExpanded: open ||
-                                            searchController.text
-                                                .trim()
-                                                .isNotEmpty,
+                                        initiallyExpanded: open,
                                         onExpansionChanged: (v) {
                                           setState(() {
                                             if (v) {

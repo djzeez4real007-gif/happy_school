@@ -94,7 +94,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
       ),
     );
     if (ok == true) {
-      await SubjectStorage.deleteSubject(index);
+      await SubjectStorage.deleteSubjectByCode(subject.subjectCode);
       await loadSubjects();
     }
   }
@@ -173,12 +173,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                         itemCount: filtered.length,
                         itemBuilder: (context, index) {
                           final subject = filtered[index];
-                          final realIndex = subjects.indexWhere(
-                            (s) =>
-                                s.subjectCode == subject.subjectCode &&
-                                s.studentClass == '',
-                          );
-
+                          // Prefer code-based edit/delete (list is de-duplicated)
                           return Container(
                             margin: const EdgeInsets.only(bottom: 10),
                             decoration: BoxDecoration(
@@ -251,12 +246,9 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                                   PopupMenuButton<String>(
                                     onSelected: (value) async {
                                       if (value == 'edit') {
-                                        await openForm(
-                                          subject: subject,
-                                          index: realIndex >= 0 ? realIndex : index,
-                                        );
-                                      } else if (value == 'delete' && realIndex >= 0) {
-                                        await confirmDelete(subject, realIndex);
+                                        await openForm(subject: subject);
+                                      } else if (value == 'delete') {
+                                        await confirmDelete(subject, 0);
                                       }
                                     },
                                     itemBuilder: (_) => const [

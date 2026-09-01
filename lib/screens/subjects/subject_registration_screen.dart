@@ -54,7 +54,8 @@ class _SubjectRegistrationScreenState extends State<SubjectRegistrationScreen> {
     );
     try {
       if (isEdit) {
-        await SubjectStorage.updateSubject(widget.index!, subject);
+        final oldCode = widget.subject!.subjectCode;
+        await SubjectStorage.updateSubjectByCode(oldCode, subject);
       } else {
         await SubjectStorage.addSubject(subject);
       }

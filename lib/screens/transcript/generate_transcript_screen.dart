@@ -51,11 +51,9 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
           });
         } catch (_) {}
       }
-      rows.sort(
-        (a, b) => '${a['fullName']}'.toLowerCase().compareTo(
-          '${b['fullName']}'.toLowerCase(),
-        ),
-      );
+      rows.sort((a, b) => '${a['fullName']}'
+          .toLowerCase()
+          .compareTo('${b['fullName']}'.toLowerCase()));
       if (!mounted) return;
       setState(() {
         allStudents = rows;
@@ -89,9 +87,8 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
       results = [];
     });
     final adm = '${s['admissionNo']}'.trim();
-    //  To this:
-    final list = await ResultStorage.getStudentResults(adm);
-
+    // Project API: getStudentResults (not getForStudent)
+    List<Result> list = await ResultStorage.getStudentResults(adm);
     list.sort((a, b) {
       final sc = b.session.compareTo(a.session);
       if (sc != 0) return sc;
@@ -133,9 +130,9 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unable to print: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to print: $e')),
+      );
     }
   }
 
@@ -148,9 +145,9 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Unable to share: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Unable to share: $e')),
+      );
     }
   }
 
@@ -199,8 +196,7 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                             Expanded(
                               child: loadingStudent
                                   ? const Center(
-                                      child: CircularProgressIndicator(),
-                                    )
+                                      child: CircularProgressIndicator())
                                   : _buildTranscriptBody(),
                             ),
                           ],
@@ -216,11 +212,8 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                               child: Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  Icon(
-                                    Icons.history_edu_rounded,
-                                    size: 56,
-                                    color: Colors.grey.shade400,
-                                  ),
+                                  Icon(Icons.history_edu_rounded,
+                                      size: 56, color: Colors.grey.shade400),
                                   const SizedBox(height: 12),
                                   Text(
                                     'Select a student to view transcript',
@@ -233,8 +226,8 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                               ),
                             )
                           : loadingStudent
-                          ? const Center(child: CircularProgressIndicator())
-                          : _buildTranscriptBody(),
+                              ? const Center(child: CircularProgressIndicator())
+                              : _buildTranscriptBody(),
                     ),
                   ],
                 );
@@ -275,13 +268,11 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                   selected != null && '${selected!['admissionNo']}' == adm;
               return ListTile(
                 selected: isSel,
-                selectedTileColor: const Color(
-                  0xFF1D4ED8,
-                ).withValues(alpha: 0.08),
+                selectedTileColor:
+                    const Color(0xFF1D4ED8).withValues(alpha: 0.08),
                 leading: CircleAvatar(
-                  backgroundColor: const Color(
-                    0xFF1D4ED8,
-                  ).withValues(alpha: 0.12),
+                  backgroundColor:
+                      const Color(0xFF1D4ED8).withValues(alpha: 0.12),
                   child: Text(
                     name.isNotEmpty ? name[0].toUpperCase() : '?',
                     style: const TextStyle(
@@ -293,9 +284,7 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                 title: Text(
                   name,
                   style: const TextStyle(
-                    fontWeight: FontWeight.w700,
-                    fontSize: 13.5,
-                  ),
+                      fontWeight: FontWeight.w700, fontSize: 13.5),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -421,26 +410,24 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                   final avg = list.isEmpty
                       ? 0.0
                       : list.map((r) => r.total).fold(0.0, (a, b) => a + b) /
-                            list.length;
+                          list.length;
                   return Container(
                     margin: const EdgeInsets.only(bottom: 14),
                     decoration: BoxDecoration(
                       color: AppColors.card(context),
                       borderRadius: BorderRadius.circular(14),
-                      border: Border.all(color: AppColors.cardBorder(context)),
+                      border:
+                          Border.all(color: AppColors.cardBorder(context)),
                     ),
                     child: Column(
                       children: [
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                            horizontal: 14,
-                            vertical: 10,
-                          ),
+                              horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: const Color(
-                              0xFF1D4ED8,
-                            ).withValues(alpha: 0.08),
+                            color: const Color(0xFF1D4ED8)
+                                .withValues(alpha: 0.08),
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(14),
                             ),
@@ -485,25 +472,17 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                                 .map(
                                   (r) => DataRow(
                                     cells: [
-                                      DataCell(
-                                        Text(
-                                          r.subjectName,
+                                      DataCell(Text(r.subjectName,
                                           style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ),
+                                              fontWeight: FontWeight.w600))),
                                       DataCell(Text(r.ca1.toStringAsFixed(0))),
                                       DataCell(Text(r.ca2.toStringAsFixed(0))),
                                       DataCell(Text(r.exam.toStringAsFixed(0))),
-                                      DataCell(
-                                        Text(
-                                          r.total.toStringAsFixed(0),
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ),
+                                      DataCell(Text(
+                                        r.total.toStringAsFixed(0),
+                                        style: const TextStyle(
+                                            fontWeight: FontWeight.w800),
+                                      )),
                                       DataCell(Text(r.grade)),
                                       DataCell(Text(r.remark)),
                                     ],

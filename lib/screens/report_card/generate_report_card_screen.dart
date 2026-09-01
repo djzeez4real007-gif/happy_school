@@ -532,6 +532,9 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                             child: Text(c.fullClassName),
                           ))
                       .toList(),
+                  onTap: () {
+                    loadClasses();
+                  },
                   onChanged: (value) async {
                     setState(() {
                       selectedClass = value;

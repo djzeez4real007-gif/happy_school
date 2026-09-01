@@ -88,6 +88,12 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
   int attendanceMarked = 0;
 
   double feesCollectedSession = 0;
+  double feesCashSession = 0;
+  double feesPosSession = 0;
+  double feesTransferSession = 0;
+  double feesCashToday = 0;
+  double feesPosToday = 0;
+  double feesTransferToday = 0;
   double feesExpectedSession = 0;
   double feesOutstandingSession = 0;
   double feesCollectedToday = 0;
@@ -202,18 +208,67 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
 
       double collectedSession = 0;
       double collectedToday = 0;
+      double cashSession = 0, posSession = 0, transferSession = 0;
+      double cashToday = 0, posToday = 0, transferToday = 0;
       int rToday = 0;
       int rSession = 0;
+
+      void addMethod(String method, double amt, {required bool session, required bool today}) {
+        final m = method.trim().toLowerCase();
+        final hasCash = m.contains('cash');
+        final hasPos = m.contains('pos') || m.contains('card');
+        final hasTransfer =
+            m.contains('transfer') || m.contains('bank') || m.contains('tfr');
+        final n = [hasCash, hasPos, hasTransfer].where((x) => x).length;
+        void apply(double v, void Function(double) toCash, void Function(double) toPos, void Function(double) toTfr, void Function(double) toOther) {
+          if (n >= 2) {
+            final share = v / n;
+            if (hasCash) toCash(share);
+            if (hasPos) toPos(share);
+            if (hasTransfer) toTfr(share);
+          } else if (hasPos) {
+            toPos(v);
+          } else if (hasTransfer) {
+            toTfr(v);
+          } else if (hasCash) {
+            toCash(v);
+          }
+        }
+        if (session) {
+          apply(
+            amt,
+            (v) => cashSession += v,
+            (v) => posSession += v,
+            (v) => transferSession += v,
+            (_) {},
+          );
+        }
+        if (today) {
+          apply(
+            amt,
+            (v) => cashToday += v,
+            (v) => posToday += v,
+            (v) => transferToday += v,
+            (_) {},
+          );
+        }
+      }
+
       for (final p in payments) {
         final paySession = p.session.trim().toLowerCase();
-        if (paySession == sessionNorm) {
+        final inSession = paySession == sessionNorm;
+        final inToday = _dateMatchesToday(p.paymentDate) &&
+            (paySession == sessionNorm || paySession.isEmpty);
+        if (inSession) {
           collectedSession += p.amountPaid;
           rSession++;
         }
-        if (_dateMatchesToday(p.paymentDate) &&
-            (paySession == sessionNorm || paySession.isEmpty)) {
+        if (inToday) {
           collectedToday += p.amountPaid;
           rToday++;
+        }
+        if (inSession || inToday) {
+          addMethod(p.paymentMethod, p.amountPaid, session: inSession, today: inToday);
         }
       }
 
@@ -305,9 +360,15 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
         absentToday = absent;
         attendanceMarked = seen.length;
         feesCollectedSession = collectedSession;
+        feesCashSession = cashSession;
+        feesPosSession = posSession;
+        feesTransferSession = transferSession;
         feesExpectedSession = expectedSession;
         feesOutstandingSession = outstandingSession;
         feesCollectedToday = collectedToday;
+        feesCashToday = cashToday;
+        feesPosToday = posToday;
+        feesTransferToday = transferToday;
         receiptsToday = rToday;
         receiptsSession = rSession;
         announcements = anns;
@@ -775,6 +836,8 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
                   'Collected (session)',
                   _money(feesCollectedSession),
                   '$receiptsSession receipt(s)',
+                  breakdown:
+                      'Cash ${_money(feesCashSession)} · POS ${_money(feesPosSession)} · Transfer ${_money(feesTransferSession)}',
                 ),
               ),
             ],
@@ -795,6 +858,8 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
                   'Collected today',
                   _money(feesCollectedToday),
                   '$receiptsToday receipt(s)',
+                  breakdown:
+                      'Cash ${_money(feesCashToday)} · POS ${_money(feesPosToday)} · Transfer ${_money(feesTransferToday)}',
                 ),
               ),
             ],
@@ -804,7 +869,7 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
     );
   }
 
-  Widget _financePill(String label, String value, String sub) {
+  Widget _financePill(String label, String value, String sub, {String? breakdown}) {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
@@ -838,6 +903,18 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
               color: AppColors.textMuted(context),
             ),
           ),
+          if (breakdown != null && breakdown.trim().isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              breakdown,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary(context),
+                height: 1.25,
+              ),
+            ),
+          ],
         ],
       ),
     );

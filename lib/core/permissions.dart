@@ -12,6 +12,7 @@ class Permissions {
   static const String transcript = 'transcript';
   static const String promotion = 'promotion';
   static const String attendance = 'attendance';
+  static const String absentList = 'absent_list';
   static const String timetable = 'timetable';
   static const String fees = 'fees';
   static const String announcements = 'announcements';
@@ -49,6 +50,7 @@ class Permissions {
           reportCards,
           transcript,
           attendance,
+          absentList,
           timetable,
           classAverages,
           announcements,

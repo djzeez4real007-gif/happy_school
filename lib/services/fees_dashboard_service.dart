@@ -266,6 +266,72 @@ class FeesDashboardService {
 
     return total;
   }
+
+
+
+
+  /// Cash / POS / Transfer totals for collected payments in filter.
+  static Future<Map<String, double>> collectedByMethod({
+    String? session,
+    String? term,
+    String? classFilter,
+  }) async {
+    final sess = (session ?? Sessions.current()).trim().toLowerCase();
+    final trm = (term ?? '').trim().toLowerCase();
+    final filter = classFilter ?? 'All';
+
+    final payments = await StudentFeePaymentStorage.getPayments();
+    final assignments = await StudentClassStorage.getStudents();
+
+    double cash = 0, pos = 0, transfer = 0, other = 0;
+
+    for (final p in payments) {
+      if (p.session.trim().toLowerCase() != sess) continue;
+      if (trm.isNotEmpty && p.term.trim().toLowerCase() != trm) continue;
+
+      if (filter != 'All' && filter.trim().isNotEmpty) {
+        final sc = _assignmentForSession(
+          assignments,
+          p.admissionNo,
+          session ?? Sessions.current(),
+        );
+        final cls = sc?.className ?? p.className;
+        if (!_classMatches(cls, filter)) continue;
+      }
+
+      final m = p.paymentMethod.trim().toLowerCase();
+      final amt = p.amountPaid;
+      final hasCash = m.contains('cash');
+      final hasPos = m.contains('pos') || m.contains('card');
+      final hasTransfer =
+          m.contains('transfer') || m.contains('bank') || m.contains('tfr');
+      final n = [hasCash, hasPos, hasTransfer].where((x) => x).length;
+
+      if (n >= 2) {
+        final share = amt / n;
+        if (hasCash) cash += share;
+        if (hasPos) pos += share;
+        if (hasTransfer) transfer += share;
+      } else if (hasPos) {
+        pos += amt;
+      } else if (hasTransfer) {
+        transfer += amt;
+      } else if (hasCash) {
+        cash += amt;
+      } else {
+        other += amt;
+      }
+    }
+
+    return {
+      'cash': cash,
+      'pos': pos,
+      'transfer': transfer,
+      'other': other,
+      'total': cash + pos + transfer + other,
+    };
+  }
+
 }
 
 class _FeeSnapshot {

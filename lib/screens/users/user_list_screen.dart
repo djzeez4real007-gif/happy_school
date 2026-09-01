@@ -19,16 +19,7 @@ class _UserListScreenState extends State<UserListScreen> {
   String query = '';
   List<AppUser> users = [];
   bool loading = true;
-  final Set<String> _expanded = {
-    'admin',
-    'principal',
-    'class_teacher',
-    'subject_teacher',
-    'accountant',
-    'parent',
-    'student',
-    'other',
-  };
+  final Set<String> _expanded = {}; // folders closed by default
 
   static const Color _primary = Color(0xFF1D4ED8);
 

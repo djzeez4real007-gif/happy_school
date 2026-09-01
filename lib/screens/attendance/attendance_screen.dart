@@ -104,26 +104,18 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final allStudents = await StudentStorage.getStudents();
     final assignedData = await StudentClassStorage.getStudents();
 
-    // Flexible match so promoted "JSS2" shows under "JSS2 A"
+    // Strict match: JSS1 A ≠ JSS1 B / JSS1 C
     String normClass(String v) =>
         v.trim().toLowerCase().replaceAll(RegExp(r'[\s\-_]+'), '');
 
     final selectedFull = selectedClass!.fullClassName.trim().toLowerCase();
     final selectedNorm = normClass(selectedClass!.fullClassName);
-    final baseMatch = RegExp(r'^(jss\s*[123]|ss\s*[123])', caseSensitive: false)
-        .firstMatch(selectedClass!.fullClassName.trim());
-    final selectedBaseNorm =
-        baseMatch != null ? normClass(baseMatch.group(0)!) : selectedNorm;
 
     final assignedToClass = assignedData.where((e) {
       if (e.session.trim() != selectedSession) return false;
       final aClass = e.className.trim().toLowerCase();
       final aNorm = normClass(e.className);
-      return aClass == selectedFull ||
-          aNorm == selectedNorm ||
-          aNorm == selectedBaseNorm ||
-          selectedNorm.startsWith(aNorm) ||
-          aNorm.startsWith(selectedBaseNorm);
+      return aClass == selectedFull || aNorm == selectedNorm;
     }).toList();
 
     final assignedAdmissionNos = assignedToClass.map((e) => e.admissionNo).toSet();
@@ -363,6 +355,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
   // ============================================================
 
   Future<void> refreshAttendance() async {
+    await loadClasses();
     await loadStudents();
   }
 
@@ -389,10 +382,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
             backgroundColor: selected ? color : null,
             foregroundColor: selected ? Colors.white : color,
             side: BorderSide(color: color),
-            padding: const EdgeInsets.symmetric(vertical: 10),
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            visualDensity: VisualDensity.compact,
+            minimumSize: const Size(0, 32),
+            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
           ),
-          icon: Icon(icon, size: 17),
-          label: Text(status, style: const TextStyle(fontSize: 11)),
+          icon: Icon(icon, size: 14),
+          label: Text(status, style: const TextStyle(fontSize: 10)),
         ),
       ),
     );
@@ -408,10 +404,10 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
     final isSelected = selectedStudents.contains(student.admissionNo);
 
     return Card(
-      margin: const EdgeInsets.only(bottom: 10),
+      margin: const EdgeInsets.only(bottom: 6),
       color: isSelected ? Colors.blue.shade50 : Colors.white,
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -491,7 +487,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
               ],
             ),
 
-            const SizedBox(height: 10),
+            const SizedBox(height: 6),
 
             Row(
               children: [
@@ -638,6 +634,9 @@ DropdownButtonFormField<SchoolClass>(
                       child: Text(schoolClass.fullClassName),
                     );
                   }).toList(),
+                  onTap: () {
+                    loadClasses();
+                  },
                   onChanged: (value) async {
                     setState(() {
                       selectedClass = value;
@@ -836,7 +835,7 @@ InkWell(
                 : filteredStudents.isEmpty
                 ? const Center(child: Text("No matching student found."))
                 : ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 100),
+                    padding: const EdgeInsets.fromLTRB(12, 4, 12, 100),
                     itemCount: filteredStudents.length,
                     itemBuilder: (context, index) {
                       return buildStudentCard(filteredStudents[index]);

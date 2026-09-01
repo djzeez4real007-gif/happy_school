@@ -135,6 +135,50 @@ class SubjectStorage {
   // DELETE SUBJECT
   // ==========================================================
 
+
+  /// Delete every stored row with this subject code (all class variants).
+  static Future<void> deleteSubjectByCode(String subjectCode) async {
+    final box = Hive.box<Map>(boxName);
+    final code = subjectCode.trim().toLowerCase();
+    final toDelete = <int>[];
+    for (int i = 0; i < box.length; i++) {
+      final raw = box.getAt(i);
+      if (raw == null) continue;
+      try {
+        final item = Subject.fromMap(Map<String, dynamic>.from(raw));
+        if (item.subjectCode.trim().toLowerCase() == code) {
+          toDelete.add(i);
+        }
+      } catch (_) {}
+    }
+    for (final i in toDelete.reversed) {
+      await box.deleteAt(i);
+    }
+  }
+
+  /// Update all rows with matching subject code (name/code fields).
+  static Future<void> updateSubjectByCode(String oldCode, Subject subject) async {
+    final box = Hive.box<Map>(boxName);
+    final code = oldCode.trim().toLowerCase();
+    for (int i = 0; i < box.length; i++) {
+      final raw = box.getAt(i);
+      if (raw == null) continue;
+      try {
+        final item = Subject.fromMap(Map<String, dynamic>.from(raw));
+        if (item.subjectCode.trim().toLowerCase() == code) {
+          final updated = Subject(
+            subjectName: subject.subjectName,
+            subjectCode: subject.subjectCode,
+            studentClass: item.studentClass.isNotEmpty
+                ? item.studentClass
+                : subject.studentClass,
+          );
+          await box.putAt(i, updated.toMap());
+        }
+      } catch (_) {}
+    }
+  }
+
   static Future<void> deleteSubject(int index) async {
     final box = Hive.box<Map>(boxName);
 

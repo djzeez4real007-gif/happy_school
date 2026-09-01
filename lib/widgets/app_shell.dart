@@ -27,6 +27,7 @@ import '../screens/student_portal/student_portal_home_screen.dart';
 import '../screens/student_portal/student_portal_admin_screen.dart';
 import '../screens/student_portal/student_results_screen.dart';
 import '../screens/timetable/timetable_screen.dart';
+import '../screens/attendance/absent_students_screen.dart';
 import '../screens/teachers/assign_teacher_subjects_screen.dart';
 import '../services/auth_service.dart';
 import '../core/theme/theme_controller.dart';
@@ -232,6 +233,13 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
       label: 'Timetable',
       icon: Icons.calendar_month_rounded,
       page: TimetableHubScreen(),
+      section: 'OPERATIONS',
+    ),
+    _NavItem(
+      key: Permissions.absentList,
+      label: 'Absent today',
+      icon: Icons.person_off_outlined,
+      page: AbsentStudentsScreen(),
       section: 'OPERATIONS',
     ),
     _NavItem(

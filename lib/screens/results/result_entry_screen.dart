@@ -202,14 +202,45 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
       final u = AuthService.currentUser;
       if (u != null && u.role == 'subject_teacher') {
         try {
-          final myCodes = await SubjectTeacherService.mySubjectCodes();
-          subs = subs
-              .where(
-                (s) => myCodes.contains(s.subjectCode.trim().toLowerCase()),
-              )
-              .toList();
+          // Subject teacher: show ALL subjects assigned to them
+          // (not only those linked on the class curriculum list)
+          final myList = await SubjectTeacherService.mySubjects();
+          final map = <String, Subject>{};
+          for (final a in myList) {
+            final code = a.subjectCode.trim().toLowerCase();
+            if (code.isEmpty) continue;
+            map[code] = Subject(
+              subjectName: a.subjectName,
+              subjectCode: a.subjectCode,
+              studentClass: '',
+            );
+          }
+          // Prefer names from global subject list when available
+          final allSubjects = await SubjectStorage.getSubjects();
+          for (final s in allSubjects) {
+            final code = s.subjectCode.trim().toLowerCase();
+            if (map.containsKey(code)) {
+              map[code] = s;
+            }
+          }
+          subs = map.values.toList();
+          subs.sort(
+            (a, b) => a.subjectName
+                .toLowerCase()
+                .compareTo(b.subjectName.toLowerCase()),
+          );
         } catch (_) {
-          subs = [];
+          // fall back to filtered class list
+          try {
+            final myCodes = await SubjectTeacherService.mySubjectCodes();
+            subs = loadedSubjects
+                .where(
+                  (s) => myCodes.contains(s.subjectCode.trim().toLowerCase()),
+                )
+                .toList();
+          } catch (_) {
+            subs = [];
+          }
         }
       }
 
@@ -285,6 +316,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
       final selectedNorm = norm(selectedClass!.fullClassName);
       final selectedBaseNorm = norm(selectedBase);
 
+      // Strict match: JSS1 A must not include JSS1 B
       final assignedStudents = allAssignments.where((a) {
         if (a.session.trim() != selectedSession) return false;
         if (StudentStatusService.isInactiveClassName(a.className)) return false;
@@ -292,11 +324,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
         final aClass = a.className.trim().toLowerCase();
         final aNorm = norm(a.className);
 
-        return aClass == selectedFull ||
-            aNorm == selectedNorm ||
-            aNorm == selectedBaseNorm ||
-            selectedNorm.startsWith(aNorm) ||
-            aNorm.startsWith(selectedBaseNorm);
+        return aClass == selectedFull || aNorm == selectedNorm;
       }).toList();
 
       final allStudents = await StudentStorage.getStudents();
@@ -430,7 +458,16 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
   // ==========================================================
 
   Future<void> saveResults() async {
-    if (selectedClass == null || selectedSubject == null || students.isEmpty) {
+    if (selectedClass == null) {
+      showMessage('Please select a class first.');
+      return;
+    }
+    if (selectedSubject == null) {
+      showMessage('Please select a subject first.');
+      return;
+    }
+    if (students.isEmpty) {
+      showMessage('No students loaded for this class.');
       return;
     }
 
@@ -439,33 +476,29 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
     });
 
     try {
+      int saved = 0;
       for (final student in students) {
-        final ca1 =
-            double.tryParse(ca1Controllers[student.admissionNo]!.text.trim()) ??
-            0;
+        final ca1Ctrl = ca1Controllers[student.admissionNo];
+        final ca2Ctrl = ca2Controllers[student.admissionNo];
+        final examCtrl = examControllers[student.admissionNo];
+        if (ca1Ctrl == null || ca2Ctrl == null || examCtrl == null) {
+          continue;
+        }
 
-        final ca2 =
-            double.tryParse(ca2Controllers[student.admissionNo]!.text.trim()) ??
-            0;
-
-        final exam =
-            double.tryParse(
-              examControllers[student.admissionNo]!.text.trim(),
-            ) ??
-            0;
+        final ca1 = double.tryParse(ca1Ctrl.text.trim()) ?? 0;
+        final ca2 = double.tryParse(ca2Ctrl.text.trim()) ?? 0;
+        final exam = double.tryParse(examCtrl.text.trim()) ?? 0;
 
         if (ca1 < 0 || ca1 > 20) {
-          showMessage("CA1 for ${student.fullName} must be between 0 and 20.");
+          showMessage('CA1 for ${student.fullName} must be between 0 and 20.');
           return;
         }
-
         if (ca2 < 0 || ca2 > 20) {
-          showMessage("CA2 for ${student.fullName} must be between 0 and 20.");
+          showMessage('CA2 for ${student.fullName} must be between 0 and 20.');
           return;
         }
-
         if (exam < 0 || exam > 60) {
-          showMessage("Exam for ${student.fullName} must be between 0 and 60.");
+          showMessage('Exam for ${student.fullName} must be between 0 and 60.');
           return;
         }
 
@@ -483,19 +516,48 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
         );
 
         await ResultStorage.saveResult(result);
+        // Verify write
+        final check = await ResultStorage.getStudentResult(
+          admissionNo: student.admissionNo,
+          subjectCode: selectedSubject!.subjectCode,
+          session: selectedSession,
+          term: selectedTerm,
+        );
+        if (check == null) {
+          throw Exception(
+            'Save did not stick for ${student.fullName}. Check results storage.',
+          );
+        }
+        saved++;
       }
 
-      await AuditLogStorage.log(
-        action: 'result_saved',
-        module: 'results',
-        description:
-            'Saved results for ${selectedSubject!.subjectName} · ${selectedClass!.fullClassName} · $selectedTerm · $selectedSession (${students.length} students)',
-        refId: selectedClass!.fullClassName,
-      );
+      try {
+        await AuditLogStorage.log(
+          action: 'result_saved',
+          module: 'results',
+          description:
+              'Saved results for ${selectedSubject!.subjectName} · ${selectedClass!.fullClassName} · $selectedTerm · $selectedSession ($saved students)',
+          refId: selectedClass!.fullClassName,
+        );
+      } catch (_) {}
 
       if (!mounted) return;
 
-      PremiumFeedback.success(context, title: "Results saved", subtitle: "Scores have been stored successfully");
+      final totalInBox = (await ResultStorage.getResults()).length;
+      try {
+        PremiumFeedback.success(
+          context,
+          title: 'Results saved',
+          subtitle:
+              '$saved student score(s) stored for ${selectedSubject!.subjectName}',
+        );
+      } catch (_) {}
+      showMessage(
+        'Saved $saved result(s) for ${selectedSubject!.subjectName}. Box total: $totalInBox',
+      );
+    } catch (e) {
+      if (!mounted) return;
+      showMessage('Could not save results: $e');
     } finally {
       if (mounted) {
         setState(() {
@@ -953,6 +1015,9 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
             ),
           )
           .toList(),
+      onTap: () {
+        loadClasses();
+      },
       onChanged: names.isEmpty
           ? null
           : (value) async {
@@ -1021,7 +1086,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
 
   Widget buildSessionDropdown() {
     return DropdownButtonFormField<String>(
-      initialValue: selectedSession,
+      value: sessions.contains(selectedSession) ? selectedSession : null,
       isExpanded: true,
       decoration: const InputDecoration(
         labelText: "Academic Session",
@@ -1047,7 +1112,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
 
   Widget buildTermDropdown() {
     return DropdownButtonFormField<String>(
-      initialValue: selectedTerm,
+      value: terms.contains(selectedTerm) ? selectedTerm : null,
       isExpanded: true,
       decoration: const InputDecoration(
         labelText: "Term",
