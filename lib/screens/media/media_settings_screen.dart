@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
+import '../../core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../models/welcome_media.dart';
@@ -194,7 +196,7 @@ class _MediaSettingsScreenState extends State<MediaSettingsScreen> {
     }
     final urlCtrl = TextEditingController();
     final capCtrl = TextEditingController(text: 'New moment');
-    final subCtrl = TextEditingController(text: 'Happy School');
+    final subCtrl = TextEditingController(text: SchoolProfileController.instance.name);
     String imageKey = '';
 
     final ok = await showDialog<bool>(
@@ -313,7 +315,7 @@ class _MediaSettingsScreenState extends State<MediaSettingsScreen> {
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
         title: const Text('Media settings'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(

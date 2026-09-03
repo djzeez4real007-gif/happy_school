@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 import '../../models/student_class.dart';
 import '../../services/student_class_storage.dart';
@@ -23,7 +24,7 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
   final TextEditingController searchController = TextEditingController();
 
   static const Color _bg = Color(0xFFF5F7FB);
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   @override
   void initState() {
@@ -321,7 +322,7 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
                                             }
                                           });
                                         },
-                                        leading: const Icon(
+                                        leading: Icon(
                                           Icons.folder_open_rounded,
                                           color: _primary,
                                           size: 22,
@@ -381,7 +382,7 @@ class _StudentClassListScreenState extends State<StudentClassListScreen> {
         backgroundColor: _primary.withValues(alpha: 0.12),
         child: Text(
           initial,
-          style: const TextStyle(
+          style: TextStyle(
             color: _primary,
             fontWeight: FontWeight.w800,
           ),

@@ -1,3 +1,6 @@
+import '../core/theme/app_colors.dart';
+import '../core/school_branding.dart';
+import '../core/school_profile_controller.dart';
 import 'dart:io';
 
 import 'package:pdf/pdf.dart';
@@ -29,8 +32,8 @@ class IdCardPdfService {
         build: (context) {
           return pw.Container(
             decoration: pw.BoxDecoration(
-              gradient: const pw.LinearGradient(
-                colors: [PdfColor.fromInt(0xFF0F172A), PdfColor.fromInt(0xFF1D4ED8)],
+              gradient: pw.LinearGradient(
+                colors: [PdfColor.fromInt(0xFF0F172A), PdfColor.fromInt(SchoolProfileController.instance.profile.primaryColorValue)],
                 begin: pw.Alignment.topLeft,
                 end: pw.Alignment.bottomRight,
               ),
@@ -52,15 +55,17 @@ class IdCardPdfService {
                         crossAxisAlignment: pw.CrossAxisAlignment.start,
                         children: [
                           pw.Text(
-                            'HAPPY SCHOOL',
+                            SchoolProfileController.instance.name.toUpperCase(),
                             style: pw.TextStyle(
                               fontSize: 13,
                               fontWeight: pw.FontWeight.bold,
-                              color: PdfColor.fromInt(0xFF1D4ED8),
+                              color: PdfColor.fromInt(SchoolProfileController.instance.profile.primaryColorValue),
                             ),
                           ),
                           pw.Text(
-                            'Excellence · Integrity · Knowledge',
+                            SchoolProfileController.instance.motto.isNotEmpty
+                                ? SchoolProfileController.instance.motto
+                                : 'Excellence · Integrity · Knowledge',
                             style: const pw.TextStyle(
                               fontSize: 7,
                               color: PdfColors.grey700,
@@ -74,7 +79,7 @@ class IdCardPdfService {
                           vertical: 4,
                         ),
                         decoration: pw.BoxDecoration(
-                          color: PdfColor.fromInt(0xFF1D4ED8),
+                          color: PdfColor.fromInt(SchoolProfileController.instance.profile.primaryColorValue),
                           borderRadius: pw.BorderRadius.circular(4),
                         ),
                         child: pw.Text(
@@ -99,7 +104,7 @@ class IdCardPdfService {
                           color: PdfColors.grey200,
                           borderRadius: pw.BorderRadius.circular(8),
                           border: pw.Border.all(
-                            color: PdfColor.fromInt(0xFF1D4ED8),
+                            color: PdfColor.fromInt(SchoolProfileController.instance.profile.primaryColorValue),
                             width: 1.5,
                           ),
                         ),
@@ -117,7 +122,7 @@ class IdCardPdfService {
                                   style: pw.TextStyle(
                                     fontSize: 28,
                                     fontWeight: pw.FontWeight.bold,
-                                    color: PdfColor.fromInt(0xFF1D4ED8),
+                                    color: PdfColor.fromInt(SchoolProfileController.instance.profile.primaryColorValue),
                                   ),
                                 ),
                               ),
@@ -150,7 +155,7 @@ class IdCardPdfService {
                   pw.Spacer(),
                   pw.Divider(color: PdfColors.grey300),
                   pw.Text(
-                    'This card remains property of Happy School',
+                    'This card remains property of ' + SchoolProfileController.instance.name,
                     style: const pw.TextStyle(
                       fontSize: 7,
                       color: PdfColors.grey600,

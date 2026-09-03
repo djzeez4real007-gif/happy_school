@@ -1,3 +1,4 @@
+import '../core/school_profile_controller.dart';
 import 'dart:typed_data';
 
 import 'package:hive_flutter/hive_flutter.dart';
@@ -47,7 +48,7 @@ class WelcomeMediaStorage {
           imageUrl:
               'https://images.unsplash.com/photo-1588072432836-e10032774350?w=1400&q=80',
           caption: 'Building futures',
-          subtitle: 'Happy School — knowledge with character',
+          subtitle: '\${SchoolProfileController.instance.name} — knowledge with character',
         ),
         WelcomeSlide(
           id: '5',

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/premium_feedback.dart';
@@ -89,7 +90,7 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                             borderRadius: BorderRadius.circular(22),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1D4ED8)
+                                color: AppColors.primary
                                     .withValues(alpha: 0.45),
                                 blurRadius: 32,
                                 offset: const Offset(0, 16),
@@ -100,11 +101,11 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                                 offset: const Offset(0, 8),
                               ),
                             ],
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [
                                 Color(0xFF0F172A),
                                 Color(0xFF1E3A8A),
-                                Color(0xFF1D4ED8),
+                                AppColors.primary,
                               ],
                               begin: Alignment.topLeft,
                               end: Alignment.bottomRight,
@@ -127,11 +128,11 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                                       horizontal: 14,
                                       vertical: 10,
                                     ),
-                                    decoration: const BoxDecoration(
+                                    decoration: BoxDecoration(
                                       gradient: LinearGradient(
                                         colors: [
                                           Color(0xFF0F172A),
-                                          Color(0xFF1D4ED8),
+                                          AppColors.primary,
                                         ],
                                       ),
                                     ),
@@ -153,13 +154,13 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                                           ),
                                         ),
                                         const SizedBox(width: 10),
-                                        const Expanded(
+                                        Expanded(
                                           child: Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'HAPPY SCHOOL',
+                                                SchoolProfileController.instance.name.toUpperCase(),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w900,
@@ -220,12 +221,12 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                                               borderRadius:
                                                   BorderRadius.circular(12),
                                               border: Border.all(
-                                                color: const Color(0xFF1D4ED8),
+                                                color: AppColors.primary,
                                                 width: 2,
                                               ),
                                               boxShadow: [
                                                 BoxShadow(
-                                                  color: const Color(0xFF1D4ED8)
+                                                  color: AppColors.primary
                                                       .withValues(alpha: 0.2),
                                                   blurRadius: 8,
                                                 ),
@@ -250,12 +251,12 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                                                               .firstName[0]
                                                               .toUpperCase()
                                                           : 'S',
-                                                      style: const TextStyle(
+                                                      style: TextStyle(
                                                         fontSize: 36,
                                                         fontWeight:
                                                             FontWeight.w900,
                                                         color:
-                                                            Color(0xFF1D4ED8),
+                                                            AppColors.primary,
                                                       ),
                                                     ),
                                                   ),
@@ -319,8 +320,8 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                                       vertical: 7,
                                     ),
                                     color: const Color(0xFFF1F5F9),
-                                    child: const Text(
-                                      'This card remains the property of Happy School',
+                                    child: Text(
+                                      'This card remains the property of ${SchoolProfileController.instance.name}',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 9,
@@ -378,7 +379,7 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
                     child: ElevatedButton.icon(
                       onPressed: () => _print(context),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D4ED8),
+                        backgroundColor: AppColors.primary,
                         foregroundColor: Colors.white,
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         elevation: 0,

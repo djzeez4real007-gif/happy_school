@@ -40,7 +40,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
   String currentTerm = 'Third Term';
   String nextSession = '2027/2028';
 
-  static const Color primaryBlue = Color(0xFF2563EB);
+  Color get primaryBlue => AppColors.primary;
 
   final List<String> sessions = const [
     '2024/2025',
@@ -786,7 +786,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: const Text(
           'Student Promotion',
@@ -856,8 +856,8 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2563EB), Color(0xFF1D4ED8)],
+        gradient: LinearGradient(
+          colors: [AppColors.primary, AppColors.primary],
         ),
         borderRadius: BorderRadius.circular(18),
       ),
@@ -914,7 +914,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: 'Current Session',
-                  prefixIcon: const Icon(Icons.calendar_today, color: primaryBlue),
+                  prefixIcon: Icon(Icons.calendar_today, color: primaryBlue),
                   filled: true,
                   
                   border: OutlineInputBorder(
@@ -943,7 +943,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                 isExpanded: true,
                 decoration: InputDecoration(
                   labelText: 'Term (for averages)',
-                  prefixIcon: const Icon(Icons.menu_book, color: primaryBlue),
+                  prefixIcon: Icon(Icons.menu_book, color: primaryBlue),
                   filled: true,
                   
                   border: OutlineInputBorder(
@@ -1001,7 +1001,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
           initialValue: selectedPath,
           isExpanded: true,
           decoration: InputDecoration(
-            prefixIcon: const Icon(Icons.trending_up, color: primaryBlue),
+            prefixIcon: Icon(Icons.trending_up, color: primaryBlue),
             filled: true,
             
             border: OutlineInputBorder(
@@ -1300,7 +1300,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                   student.studentName.isEmpty
                       ? '?'
                       : student.studentName[0].toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: primaryBlue,
                     fontWeight: FontWeight.w900,
                     fontSize: 16,
@@ -1468,7 +1468,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                       const SizedBox(height: 3),
                       Text(
                         selectedPath.label,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: primaryBlue,
                           fontWeight: FontWeight.w900,
                           fontSize: 15,
@@ -1499,7 +1499,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                 else
                   Text(
                     targetClass,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: primaryBlue,
                       fontWeight: FontWeight.w900,
                     ),
@@ -1538,7 +1538,7 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
                     : automaticMode
                     ? 'PROMOTE ELIGIBLE STUDENTS'
                     : 'PROMOTE SELECTED STUDENTS',
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: primaryBlue,

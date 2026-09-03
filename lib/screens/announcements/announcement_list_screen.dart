@@ -24,7 +24,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
   bool loading = true;
 
   
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   @override
   void initState() {
@@ -121,7 +121,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
         foregroundColor: Colors.white,
         title: Text(
           'Announcements (${announcements.length})',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       floatingActionButton: canManage
@@ -193,7 +193,7 @@ class _AnnouncementListScreenState extends State<AnnouncementListScreen> {
                                           const Color(0xFFF87171),
                                         ]
                                       : [
-                                          const Color(0xFF1D4ED8),
+                                          AppColors.primary,
                                           const Color(0xFF60A5FA),
                                         ],
                                 ),

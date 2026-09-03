@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 /// Premium animated confirm dialogs and success toasts
 /// used across the app (logout, save, create, delete, etc.).
@@ -16,7 +17,7 @@ class PremiumFeedback {
     String confirmText = 'Confirm',
     String cancelText = 'Cancel',
     IconData icon = Icons.help_outline_rounded,
-    Color accent = const Color(0xFF1D4ED8),
+    Color? accent,
     bool isDestructive = false,
   }) async {
     final result = await showGeneralDialog<bool>(
@@ -69,7 +70,7 @@ class PremiumFeedback {
                           shape: BoxShape.circle,
                           color: (isDestructive
                                   ? const Color(0xFFDC2626)
-                                  : accent)
+                                  : (accent ?? AppColors.primary))
                               .withValues(alpha: 0.12),
                         ),
                         child: Icon(
@@ -79,7 +80,7 @@ class PremiumFeedback {
                           size: 30,
                           color: isDestructive
                               ? const Color(0xFFDC2626)
-                              : accent,
+                              : (accent ?? AppColors.primary),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -200,7 +201,7 @@ class PremiumFeedback {
       title: title,
       subtitle: subtitle,
       icon: icon,
-      gradient: const [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
+      gradient: [AppColors.primary, const Color(0xFF3B82F6)],
     );
   }
 

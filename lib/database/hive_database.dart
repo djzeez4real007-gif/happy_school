@@ -50,6 +50,9 @@ class HiveDatabase {
 
     await Hive.openBox('welcome_media');
     await Hive.openBox('welcome_images');
+    await Hive.openBox('school_profile');
+    await Hive.openBox('school_licence');
+    await Hive.openBox('pricing_packages');
     await Hive.openBox('teacher_subjects');
 
     // Timetable

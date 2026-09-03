@@ -60,7 +60,7 @@ class _StudentClassAssignmentScreenState
   }
 
   static const Color _bg = Color(0xFFF5F7FB);
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   bool get isEdit => widget.studentClass != null;
 
@@ -203,7 +203,7 @@ class _StudentClassAssignmentScreenState
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: _primary, width: 1.5),
+        borderSide: BorderSide(color: _primary, width: 1.5),
       ),
     );
   }
@@ -230,7 +230,7 @@ class _StudentClassAssignmentScreenState
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    gradient: const LinearGradient(
+                    gradient: LinearGradient(
                       colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
                     ),
                     borderRadius: BorderRadius.circular(18),
@@ -387,9 +387,8 @@ class _StudentClassAssignmentScreenState
                             ),
                             child: Row(
                               children: [
-                                const Icon(
-                                  Icons.check_circle,
-                                  color: Color(0xFF1D4ED8),
+                                Icon(
+                                  Icons.check_circle, color: AppColors.primary,
                                   size: 20,
                                 ),
                                 const SizedBox(width: 8),
@@ -445,7 +444,7 @@ class _StudentClassAssignmentScreenState
                                         leading: CircleAvatar(
                                           radius: 16,
                                           backgroundColor:
-                                              const Color(0xFF1D4ED8),
+                                              AppColors.primary,
                                           child: Text(
                                             s.firstName.isNotEmpty
                                                 ? s.firstName[0]
@@ -517,7 +516,7 @@ class _StudentClassAssignmentScreenState
                       saving
                           ? 'Saving...'
                           : (isEdit ? 'UPDATE ASSIGNMENT' : 'ASSIGN STUDENT'),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontWeight: FontWeight.w800,
                         fontSize: 15,
                       ),

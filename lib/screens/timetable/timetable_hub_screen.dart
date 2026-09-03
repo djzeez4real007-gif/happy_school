@@ -23,12 +23,12 @@ class TimetableHubScreen extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
               ),
               borderRadius: BorderRadius.circular(20),
             ),
-            child: const Column(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
@@ -53,7 +53,7 @@ class TimetableHubScreen extends StatelessWidget {
             icon: Icons.grid_view_rounded,
             title: 'View Timetable',
             subtitle: 'Days × periods grid · copy to classes',
-            color: const Color(0xFF2563EB),
+            color: AppColors.primary,
             onTap: () {
               Navigator.push(
                 context,

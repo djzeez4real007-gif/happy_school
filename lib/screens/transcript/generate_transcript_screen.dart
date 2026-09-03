@@ -157,7 +157,7 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('Academic Transcript'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
@@ -269,14 +269,14 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
               return ListTile(
                 selected: isSel,
                 selectedTileColor:
-                    const Color(0xFF1D4ED8).withValues(alpha: 0.08),
+                    AppColors.primary.withValues(alpha: 0.08),
                 leading: CircleAvatar(
                   backgroundColor:
-                      const Color(0xFF1D4ED8).withValues(alpha: 0.12),
+                      AppColors.primary.withValues(alpha: 0.12),
                   child: Text(
                     name.isNotEmpty ? name[0].toUpperCase() : '?',
-                    style: const TextStyle(
-                      color: Color(0xFF1D4ED8),
+                    style: TextStyle(
+                      color: AppColors.primary,
                       fontWeight: FontWeight.w800,
                     ),
                   ),
@@ -309,8 +309,8 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+            gradient: LinearGradient(
+              colors: [Color(0xFF0F172A), AppColors.primary],
             ),
             borderRadius: BorderRadius.circular(18),
           ),
@@ -351,11 +351,11 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                 children: [
                   FilledButton.icon(
                     onPressed: results.isEmpty ? null : _print,
-                    icon: const Icon(Icons.print_rounded, size: 18),
+                    icon: Icon(Icons.print_rounded, size: 18),
                     label: const Text('Print PDF'),
                     style: FilledButton.styleFrom(
                       backgroundColor: Colors.white,
-                      foregroundColor: const Color(0xFF1D4ED8),
+                      foregroundColor: AppColors.primary,
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -426,7 +426,7 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 14, vertical: 10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1D4ED8)
+                            color: AppColors.primary
                                 .withValues(alpha: 0.08),
                             borderRadius: const BorderRadius.vertical(
                               top: Radius.circular(14),

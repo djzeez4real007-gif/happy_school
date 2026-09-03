@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 
-/// Theme-aware colors — use these instead of hardcoded
-/// Color(0xFFF5F7FB) / Colors.white so dark mode works.
+import '../school_profile_controller.dart';
+
 class AppColors {
   AppColors._();
 
   static bool isDark(BuildContext context) =>
       Theme.of(context).brightness == Brightness.dark;
+
+  static Color get primary => SchoolProfileController.instance.primary;
+  static Color get accent => SchoolProfileController.instance.accent;
 
   static Color scaffold(BuildContext context) =>
       isDark(context) ? const Color(0xFF0F172A) : const Color(0xFFF5F7FB);
@@ -32,7 +35,10 @@ class AppColors {
   static Color divider(BuildContext context) =>
       isDark(context) ? const Color(0xFF334155) : const Color(0xFFE5E7EB);
 
-  static Color primary = const Color(0xFF1D4ED8);
-  static Color primarySoft(BuildContext context) =>
-      isDark(context) ? const Color(0xFF1E3A8A) : const Color(0xFFDBEAFE);
+  static Color primarySoft(BuildContext context) {
+    final p = primary;
+    return isDark(context)
+        ? Color.alphaBlend(p.withValues(alpha: 0.35), const Color(0xFF0F172A))
+        : Color.alphaBlend(p.withValues(alpha: 0.12), Colors.white);
+  }
 }

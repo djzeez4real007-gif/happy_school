@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:open_filex/open_filex.dart';
 
@@ -134,7 +135,7 @@ class ReportCardScreen extends StatelessWidget {
 
               Center(
                 child: Text(
-                  'Happy School Management System',
+                  (SchoolProfileController.instance.name + ' Management System'),
                   style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
                 ),
               ),
@@ -154,7 +155,7 @@ class ReportCardScreen extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           colors: [darkBlue, primaryBlue],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -186,8 +187,8 @@ class ReportCardScreen extends StatelessWidget {
 
           const SizedBox(height: 12),
 
-          const Text(
-            'HAPPY SCHOOL',
+          Text(
+            SchoolProfileController.instance.name.toUpperCase(),
             textAlign: TextAlign.center,
             style: TextStyle(
               color: Colors.white,

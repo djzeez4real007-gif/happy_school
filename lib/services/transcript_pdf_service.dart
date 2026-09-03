@@ -1,3 +1,5 @@
+import '../core/school_branding.dart';
+import '../core/school_profile_controller.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -29,6 +31,8 @@ class TranscriptPdfService {
   }
 
   static Future<Uint8List?> _logo() async {
+    final custom = SchoolBranding.logoBytes;
+    if (custom != null && custom.isNotEmpty) return custom;
     for (final path in [
       'assets/images/school_logo.png',
       'assets/images/logo.png',
@@ -122,7 +126,7 @@ class TranscriptPdfService {
                   child: pw.Column(
                     children: [
                       pw.Text(
-                        'HAPPY SCHOOL',
+                        SchoolProfileController.instance.name.toUpperCase(),
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(
                           fontWeight: pw.FontWeight.bold,
@@ -138,7 +142,7 @@ class TranscriptPdfService {
                         style: pw.TextStyle(fontSize: 9, color: _muted),
                       ),
                       pw.Text(
-                        'Bolakale Street, Checking Point, Ilorin, Nigeria',
+                        SchoolProfileController.instance.address,
                         textAlign: pw.TextAlign.center,
                         style: pw.TextStyle(fontSize: 8, color: _muted),
                       ),
@@ -172,25 +176,43 @@ class TranscriptPdfService {
             pw.SizedBox(height: 12),
           ],
         ),
-        footer: (ctx) => pw.Column(
-          children: [
-            pw.Divider(color: _line, thickness: 0.6),
-            pw.SizedBox(height: 3),
-            pw.Row(
+        footer: (ctx) {
+          final studentName = '${student['fullName'] ?? ''}'.trim();
+          final adm = '${student['admissionNo'] ?? ''}'.trim();
+          final parts = <String>[];
+          if (studentName.isNotEmpty) parts.add(studentName);
+          if (adm.isNotEmpty) parts.add(adm);
+          parts.add(SchoolProfileController.instance.name + ' ERP');
+          final label = parts.join(' · ');
+          return pw.Container(
+            margin: const pw.EdgeInsets.only(top: 6),
+            padding: const pw.EdgeInsets.only(top: 8),
+            decoration: const pw.BoxDecoration(
+              border: pw.Border(
+                top: pw.BorderSide(width: 0.8),
+              ),
+            ),
+            child: pw.Row(
               mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
               children: [
-                pw.Text(
-                  'Official academic record · Happy School ERP',
-                  style: pw.TextStyle(fontSize: 7, color: _muted),
+                pw.Expanded(
+                  child: pw.Text(
+                    label,
+                    style: pw.TextStyle(
+                      fontSize: 8.5,
+                      fontWeight: pw.FontWeight.bold,
+                    ),
+                    maxLines: 1,
+                  ),
                 ),
                 pw.Text(
                   'Page ${ctx.pageNumber} of ${ctx.pagesCount}',
-                  style: pw.TextStyle(fontSize: 7, color: _muted),
+                  style: const pw.TextStyle(fontSize: 8.5),
                 ),
               ],
             ),
-          ],
-        ),
+          );
+        },
         build: (ctx) {
           final widgets = <pw.Widget>[
             pw.Text(
@@ -231,7 +253,7 @@ class TranscriptPdfService {
                     child: pw.Column(
                       crossAxisAlignment: pw.CrossAxisAlignment.start,
                       children: [
-                        _info('Issuing Institution', 'Happy School'),
+                        _info('Issuing Institution', SchoolProfileController.instance.name),
                         _info('Document Type', 'Academic Transcript'),
                         _info('Date Issued', issued),
                         _info(
@@ -399,14 +421,14 @@ class TranscriptPdfService {
             ),
           );
 
-          widgets.add(pw.SizedBox(height: 14));
+          widgets.add(pw.SizedBox(height: 20));
           widgets.add(
             pw.Text(
               'This transcript is a certified summary of the student’s academic performance. '
               'Any alteration invalidates this document.',
               style: pw.TextStyle(
-                fontSize: 7,
-                color: _muted,
+                fontSize: 8,
+                color: _ink,
                 fontStyle: pw.FontStyle.italic,
               ),
             ),
@@ -495,7 +517,7 @@ class TranscriptPdfService {
     required List<Result> results,
   }) async {
     final bytes = await buildPdf(student: student, results: results);
-    final name = '${student['fullName'] ?? 'Student'}_Transcript'
+    final name = '${student['fullName'] ?? 'Student'}_${student['admissionNo'] ?? ''}_Transcript'
         .replaceAll(RegExp(r'[^\w\-]+'), '_');
     await Printing.layoutPdf(
       onLayout: (_) async => bytes,
@@ -509,9 +531,10 @@ class TranscriptPdfService {
   }) async {
     final bytes = await buildPdf(student: student, results: results);
     final directory = await getApplicationDocumentsDirectory();
-    final safe = '${student['admissionNo'] ?? 'student'}'
+    final full = '${student['fullName'] ?? 'Student'}_${student['admissionNo'] ?? ''}'
+        .trim()
         .replaceAll(RegExp(r'[^\w\-]+'), '_');
-    final file = File('${directory.path}/transcript_$safe.pdf');
+    final file = File('${directory.path}/Transcript_$full.pdf');
     await file.writeAsBytes(bytes);
     await SharePlus.instance.share(
       ShareParams(

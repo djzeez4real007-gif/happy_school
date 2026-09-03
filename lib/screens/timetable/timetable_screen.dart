@@ -111,10 +111,14 @@ class _TimetableScreenState extends State<TimetableScreen> {
     final p = entry.period.trim().toLowerCase();
     final name = slot.name.trim().toLowerCase();
     final time = slot.time.trim().toLowerCase();
+    if (p.isEmpty) return false;
     if (p == name || p == slot.displayText.toLowerCase()) return true;
     if (p.startsWith(name)) return true;
     if (name.isNotEmpty && p.contains(name)) return true;
-    // Match by time fragment e.g. "8:00 AM - 8:45 AM"
+    // "Period 1: 8:00 AM - 8:45 AM" vs slot "Period 1"
+    final pe = RegExp(r'period\s*(\d+)').firstMatch(p);
+    final sn = RegExp(r'period\s*(\d+)').firstMatch(name);
+    if (pe != null && sn != null && pe.group(1) == sn.group(1)) return true;
     if (time.isNotEmpty && p.contains(time)) return true;
     return false;
   }
@@ -261,7 +265,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
                       ? null
                       : () => Navigator.pop(ctx, true),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D4ED8),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                   ),
                   child: Text('Copy to ${selected.length} class(es)'),
@@ -468,7 +472,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
 
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final border = isDark ? Colors.white24 : const Color(0xFF94A3B8);
-    final headerBg = const Color(0xFF1D4ED8);
+    final headerBg = AppColors.primary;
     final dayBg = isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF);
     final breakBg = isDark ? const Color(0xFF422006) : const Color(0xFFFEF3C7);
     final emptyBg = isDark ? const Color(0xFF0F172A) : Colors.white;
@@ -526,11 +530,10 @@ class _TimetableScreenState extends State<TimetableScreen> {
               isExpanded: true,
               decoration: InputDecoration(
                 labelText: 'Class',
-                labelStyle: const TextStyle(color: Color(0xFF1D4ED8)),
+                labelStyle: TextStyle(color: AppColors.primary),
                 filled: true,
                 fillColor: Colors.white,
-                prefixIcon: const Icon(Icons.class_rounded,
-                    color: Color(0xFF1D4ED8)),
+                prefixIcon: Icon(Icons.class_rounded, color: AppColors.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
                   borderSide: BorderSide.none,
@@ -569,7 +572,7 @@ class _TimetableScreenState extends State<TimetableScreen> {
           ),
           Expanded(
             child: loading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator())
                 : SingleChildScrollView(
                     padding: const EdgeInsets.fromLTRB(12, 4, 12, 88),
                     child: SingleChildScrollView(

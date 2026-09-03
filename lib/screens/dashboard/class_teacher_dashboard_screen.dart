@@ -99,7 +99,7 @@ class _ClassTeacherDashboardScreenState
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [Color(0xFF1E3A8A), Color(0xFF3B82F6)],
                       ),
                       borderRadius: BorderRadius.circular(20),
@@ -211,7 +211,7 @@ class _ClassTeacherDashboardScreenState
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
       child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF2563EB)),
+        leading: Icon(icon, color: AppColors.primary),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,

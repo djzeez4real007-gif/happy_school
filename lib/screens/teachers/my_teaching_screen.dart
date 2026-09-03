@@ -73,15 +73,15 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
       body: RefreshIndicator(
         onRefresh: _load,
         child: loading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator())
             : ListView(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                 children: [
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF0F172A), AppColors.primary],
                       ),
                       borderRadius: BorderRadius.circular(20),
                     ),
@@ -135,7 +135,7 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                           Icons.edit_note_rounded,
                           'Enter results',
                           'Only your subjects',
-                          const Color(0xFF2563EB),
+                          AppColors.primary,
                           () => Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -221,12 +221,11 @@ class _MyTeachingScreenState extends State<MyTeachingScreen> {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF2563EB)
+                                color: AppColors.primary
                                     .withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(12),
                               ),
-                              child: const Icon(Icons.menu_book_rounded,
-                                  color: Color(0xFF2563EB)),
+                              child: Icon(Icons.menu_book_rounded, color: AppColors.primary),
                             ),
                             const SizedBox(width: 12),
                             Expanded(

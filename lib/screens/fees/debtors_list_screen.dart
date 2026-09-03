@@ -325,7 +325,7 @@ class _DebtorsListScreenState extends State<DebtorsListScreen> {
                                           width: 48,
                                           height: 48,
                                           decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
+                                            gradient: LinearGradient(
                                               colors: [
                                                 Color(0xFFDC2626),
                                                 Color(0xFFF97316),
@@ -389,7 +389,7 @@ class _DebtorsListScreenState extends State<DebtorsListScreen> {
                                         _chip(
                                           '${item['class']}',
                                           const Color(0xFFEFF6FF),
-                                          const Color(0xFF1D4ED8),
+                                          AppColors.primary,
                                         ),
                                         _chip(
                                           '${item['session']}',
@@ -466,7 +466,7 @@ class _DebtorsListScreenState extends State<DebtorsListScreen> {
                                         ),
                                         style: ElevatedButton.styleFrom(
                                           backgroundColor:
-                                              const Color(0xFF1D4ED8),
+                                              AppColors.primary,
                                           foregroundColor: Colors.white,
                                           elevation: 0,
                                           shape: RoundedRectangleBorder(

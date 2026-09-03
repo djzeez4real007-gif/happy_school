@@ -22,6 +22,12 @@ import '../screens/users/user_list_screen.dart';
 import '../screens/parent/parent_portal_screen.dart';
 import '../screens/audit/audit_log_screen.dart';
 import '../screens/media/media_settings_screen.dart';
+import '../screens/licence/licence_admin_screen.dart';
+import '../screens/licence/view_plans_screen.dart';
+import '../core/licence_guard.dart';
+import '../screens/settings/school_profile_screen.dart';
+import '../core/school_profile_controller.dart';
+import '../core/school_branding.dart';
 import '../screens/teachers/my_teaching_screen.dart';
 import '../screens/student_portal/student_portal_home_screen.dart';
 import '../screens/student_portal/student_portal_admin_screen.dart';
@@ -58,7 +64,7 @@ class _NavItem {
 }
 
 class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin {
-  static const Color primaryBlue = Color(0xFF1D4ED8);
+  Color get primaryBlue => SchoolProfileController.instance.primary;
   static const Color sidebarBg = Color(0xFF0F172A);
   static const double sidebarWidth = 260;
 
@@ -282,6 +288,27 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
       section: 'SYSTEM',
     ),
     _NavItem(
+      key: Permissions.licence,
+      label: 'Licence & billing',
+      icon: Icons.workspace_premium_rounded,
+      page: LicenceAdminScreen(),
+      section: 'ADMIN',
+    ),
+    _NavItem(
+      key: Permissions.viewPlans,
+      label: 'Plans & pricing',
+      icon: Icons.payments_outlined,
+      page: ViewPlansScreen(),
+      section: 'ADMIN',
+    ),
+    _NavItem(
+      key: Permissions.media,
+      label: 'School profile',
+      icon: Icons.apartment_rounded,
+      page: SchoolProfileScreen(),
+      section: 'ADMIN',
+    ),
+    _NavItem(
       key: Permissions.auditLog,
       label: 'Audit Log',
       icon: Icons.history_rounded,
@@ -313,7 +340,7 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
     final ok = await PremiumFeedback.confirm(
       context,
       title: 'Logout',
-      message: 'Sign out of Happy School ERP?\nYou can sign back in anytime.',
+      message: 'Sign out of ${SchoolProfileController.instance.name} ERP?\nYou can sign back in anytime.',
       confirmText: 'Logout',
       cancelText: 'Stay',
       icon: Icons.logout_rounded,
@@ -366,7 +393,7 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
           },
         ),
         title: Text(
-          items.isEmpty ? 'Happy School' : items[_selectedIndex].label,
+          items.isEmpty ? SchoolProfileController.instance.name : items[_selectedIndex].label,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
         actions: [
@@ -408,9 +435,50 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
     if (items.isEmpty) {
       return const Center(child: Text('No access'));
     }
+    if (LicenceGuard.isLocked) {
+      return _licenceLockPage();
+    }
     return IndexedStack(
       index: _selectedIndex,
       children: items.map((item) => item.page).toList(),
+    );
+  }
+
+  Widget _licenceLockPage() {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.lock_outline_rounded,
+                    size: 64, color: Color(0xFFDC2626)),
+                const SizedBox(height: 16),
+                const Text(
+                  'Access locked',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  LicenceGuard.lockMessage,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(height: 1.4, color: Color(0xFF475569)),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Only the vendor account can renew the licence.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -424,31 +492,31 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
           padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
           child: Row(
             children: [
-              Container(
-                width: 42,
-                height: 42,
-                decoration: BoxDecoration(
-                  color: primaryBlue,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.school, color: Colors.white, size: 24),
+              SchoolBranding.logo(
+                size: 42,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Happy School',
-                      style: TextStyle(
+                      SchoolProfileController.instance.name,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.w800,
                         fontSize: 16,
                       ),
                     ),
                     Text(
-                      'ERP System',
-                      style: TextStyle(color: Colors.white54, fontSize: 12),
+                      SchoolBranding.motto.isNotEmpty
+                          ? SchoolBranding.motto
+                          : 'ERP System',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(color: Colors.white54, fontSize: 11),
                     ),
                   ],
                 ),

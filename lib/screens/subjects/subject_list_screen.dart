@@ -20,7 +20,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
   final searchController = TextEditingController();
 
   
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   @override
   void initState() {
@@ -115,7 +115,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
         foregroundColor: Colors.white,
         title: Text(
           'Subjects (${filtered.length})',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -196,7 +196,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                                     width: 50,
                                     height: 50,
                                     decoration: BoxDecoration(
-                                      gradient: const LinearGradient(
+                                      gradient: LinearGradient(
                                         colors: [
                                           Color(0xFF7C3AED),
                                           Color(0xFFA78BFA),
@@ -236,7 +236,7 @@ class _SubjectListScreenState extends State<SubjectListScreen> {
                                                   ? 'All classes'
                                                   : '',
                                               const Color(0xFFEFF6FF),
-                                              const Color(0xFF1D4ED8),
+                                              AppColors.primary,
                                             ),
                                           ],
                                         ),

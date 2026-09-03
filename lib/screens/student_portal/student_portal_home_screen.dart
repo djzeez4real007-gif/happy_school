@@ -79,7 +79,7 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : RefreshIndicator(
               onRefresh: _load,
               child: Stack(
@@ -110,8 +110,8 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
                       Container(
                         padding: const EdgeInsets.all(20),
                         decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+                          gradient: LinearGradient(
+                            colors: [Color(0xFF0F172A), AppColors.primary],
                           ),
                           borderRadius: BorderRadius.circular(20),
                         ),
@@ -201,8 +201,8 @@ class _StudentPortalHomeScreenState extends State<StudentPortalHomeScreen> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
       child: ListTile(
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF2563EB).withValues(alpha: 0.12),
-          child: Icon(icon, color: const Color(0xFF2563EB)),
+          backgroundColor: AppColors.primary.withValues(alpha: 0.12),
+          child: Icon(icon, color: AppColors.primary),
         ),
         title: Text(title, style: const TextStyle(fontWeight: FontWeight.w800)),
         subtitle: Text(sub),

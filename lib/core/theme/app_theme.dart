@@ -16,7 +16,10 @@ class AppTheme {
   // ----------------------------------------------------------
   // LIGHT
   // ----------------------------------------------------------
-  static ThemeData lightTheme = ThemeData(
+  static ThemeData lightTheme({Color? primary, Color? accent}) {
+    final primaryColor = primary ?? const Color(0xFF1D4ED8);
+    final secondaryColor = accent ?? const Color(0xFF3B82F6);
+    return ThemeData(
     useMaterial3: true,
     brightness: Brightness.light,
     scaffoldBackgroundColor: lightBg,
@@ -97,7 +100,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
     ),
@@ -119,16 +122,17 @@ class AppTheme {
         return Colors.grey.shade300;
       }),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
+    progressIndicatorTheme: ProgressIndicatorThemeData(
       color: primaryColor,
     ),
     drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF0F172A)),
   );
+  }
 
-  // ----------------------------------------------------------
-  // DARK
-  // ----------------------------------------------------------
-  static ThemeData darkTheme = ThemeData(
+  static ThemeData darkTheme({Color? primary, Color? accent}) {
+    final primaryColor = primary ?? const Color(0xFF1D4ED8);
+    final secondaryColor = accent ?? const Color(0xFF3B82F6);
+    return ThemeData(
     useMaterial3: true,
     brightness: Brightness.dark,
     scaffoldBackgroundColor: darkBg,
@@ -210,7 +214,7 @@ class AppTheme {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     ),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: primaryColor,
       foregroundColor: Colors.white,
     ),
@@ -238,13 +242,14 @@ class AppTheme {
         return Colors.white24;
       }),
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
-      color: Color(0xFF60A5FA),
+    progressIndicatorTheme: ProgressIndicatorThemeData(
+      color: primaryColor,
     ),
     iconTheme: const IconThemeData(color: Colors.white70),
     primaryIconTheme: const IconThemeData(color: Colors.white),
     drawerTheme: const DrawerThemeData(backgroundColor: Color(0xFF020617)),
   );
+  }
 
   static final InputDecorationTheme _inputLight = InputDecorationTheme(
     filled: true,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
 
 import '../../models/student_fee_payment.dart';
 
@@ -43,7 +44,7 @@ class FeeReceiptScreen extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
 
               children: [
-                const Center(
+                Center(
                   child: Column(
                     children: [
                       Icon(Icons.school, size: 60, color: Colors.blue),
@@ -51,7 +52,7 @@ class FeeReceiptScreen extends StatelessWidget {
                       SizedBox(height: 10),
 
                       Text(
-                        "HAPPY SCHOOL ERP",
+                        SchoolProfileController.instance.name.toUpperCase() + ' ERP',
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 24,

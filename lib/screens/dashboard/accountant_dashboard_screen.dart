@@ -94,7 +94,7 @@ class _AccountantDashboardScreenState extends State<AccountantDashboardScreen> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [Color(0xFF064E3B), Color(0xFF059669)],
                       ),
                       borderRadius: BorderRadius.circular(20),
@@ -157,7 +157,7 @@ class _AccountantDashboardScreenState extends State<AccountantDashboardScreen> {
                           'Session total',
                           '₦${fmt.format(collectedSession)}',
                           '$receiptsSession receipt(s)',
-                          const Color(0xFF2563EB),
+                          AppColors.primary,
                         ),
                       ),
                     ],

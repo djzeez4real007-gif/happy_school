@@ -339,12 +339,24 @@ class _TimetableFormScreenState extends State<TimetableFormScreen> {
       saving = true;
     });
 
+    // Keep "Period N" clearly so grid can match even if times differ
+    var periodValue = selectedPeriod.trim();
+    final periodNum = RegExp(r'Period\s*(\d+)', caseSensitive: false)
+        .firstMatch(periodValue);
+    if (periodNum != null) {
+      periodValue =
+          'Period ${periodNum.group(1)}: ${periodValue.split(':').skip(1).join(':').trim()}';
+      if (!periodValue.contains(':')) {
+        periodValue = 'Period ${periodNum.group(1)}';
+      }
+    }
+
     final timetable = Timetable(
       id: widget.timetable?.id ?? TimetableStorage.generateId(),
 
       day: selectedDay,
 
-      period: selectedPeriod,
+      period: periodValue.isNotEmpty ? periodValue : selectedPeriod,
 
       className: selectedClass!.fullClassName,
 

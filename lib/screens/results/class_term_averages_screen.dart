@@ -192,9 +192,9 @@ class _ClassTermAveragesScreenState extends State<ClassTermAveragesScreen> {
               right: 16,
               bottom: 16,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1E3A8A), Color(0xFF2563EB), Color(0xFF38BDF8)],
+                colors: [Color(0xFF1E3A8A), AppColors.primary, Color(0xFF38BDF8)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -393,9 +393,9 @@ class _ClassTermAveragesScreenState extends State<ClassTermAveragesScreen> {
                                           width: 44,
                                           height: 44,
                                           decoration: BoxDecoration(
-                                            gradient: const LinearGradient(
+                                            gradient: LinearGradient(
                                               colors: [
-                                                Color(0xFF1D4ED8),
+                                                AppColors.primary,
                                                 Color(0xFF60A5FA),
                                               ],
                                             ),

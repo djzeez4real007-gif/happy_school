@@ -10,6 +10,7 @@ import '../../data/nigeria_data.dart';
 import '../../models/student.dart';
 import '../../services/audit_log_storage.dart';
 import '../../services/student_storage.dart';
+import '../../core/licence_guard.dart';
 import 'student_list_screen.dart';
 
 class StudentRegistrationScreen extends StatefulWidget {
@@ -234,6 +235,11 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
   // ============================================================
 
   Future<void> saveStudent() async {
+    if (!await LicenceGuard.ensureWritable(context)) return;
+    if (widget.index == null) {
+      if (!await LicenceGuard.ensureCanAddStudent(context)) return;
+    }
+
     if (!_formKey.currentState!.validate()) {
       return;
     }

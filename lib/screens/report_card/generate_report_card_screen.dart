@@ -400,7 +400,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
   InputDecoration _dec(String label, IconData icon) {
     return InputDecoration(
       labelText: label,
-      prefixIcon: Icon(icon, color: const Color(0xFF1D4ED8)),
+      prefixIcon: Icon(icon, color: AppColors.primary),
       filled: true,
       
       border: OutlineInputBorder(
@@ -413,7 +413,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.5),
+        borderSide: BorderSide(color: AppColors.primary, width: 1.5),
       ),
     );
   }
@@ -429,7 +429,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
+              gradient: LinearGradient(
                 colors: [Color(0xFF1E40AF), Color(0xFF3B82F6)],
               ),
               borderRadius: BorderRadius.circular(18),
@@ -522,13 +522,13 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   },
                 ),
                 const SizedBox(height: 14),
-                DropdownButtonFormField<SchoolClass>(
-                  value: selectedClass,
+                DropdownButtonFormField<String>(
+                  value: selectedClass?.fullClassName,
                   isExpanded: true,
                   decoration: _dec('Class', Icons.class_rounded),
                   items: classes
                       .map((c) => DropdownMenuItem(
-                            value: c,
+                            value: c.fullClassName,
                             child: Text(c.fullClassName),
                           ))
                       .toList(),
@@ -537,7 +537,17 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   },
                   onChanged: (value) async {
                     setState(() {
-                      selectedClass = value;
+                      if (value == null) {
+                        selectedClass = null;
+                      } else {
+                        try {
+                          selectedClass = classes.firstWhere(
+                            (c) => c.fullClassName == value,
+                          );
+                        } catch (_) {
+                          selectedClass = null;
+                        }
+                      }
                       selectedStudent = null;
                       students = [];
                       classStudents = [];
@@ -580,7 +590,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                         selected: sel,
                         leading: Icon(
                           sel ? Icons.check_circle : Icons.person_outline,
-                          color: sel ? const Color(0xFF1D4ED8) : null,
+                          color: sel ? AppColors.primary : null,
                         ),
                         title: Text(s.fullName, style: const TextStyle(fontWeight: FontWeight.w700)),
                         subtitle: Text(s.admissionNo),
@@ -594,7 +604,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                   ] else if (selectedStudent != null)
                     ListTile(
                       dense: true,
-                      leading: const Icon(Icons.check_circle, color: Color(0xFF1D4ED8)),
+                      leading: Icon(Icons.check_circle, color: AppColors.primary),
                       title: Text(selectedStudent!.fullName),
                       subtitle: Text(selectedStudent!.admissionNo),
                       trailing: IconButton(
@@ -703,10 +713,10 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
                     : (bulkMode
                         ? 'GENERATE SELECTED (${selectedAdmissionNos.length})'
                         : 'GENERATE REPORT CARD'),
-                style: const TextStyle(fontWeight: FontWeight.w800),
+                style: TextStyle(fontWeight: FontWeight.w800),
               ),
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1D4ED8),
+                backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
                 shape: RoundedRectangleBorder(
@@ -722,7 +732,7 @@ class _GenerateReportCardScreenState extends State<GenerateReportCardScreen> {
 
   Widget _modeChip(String label, bool selected, VoidCallback onTap) {
     return Material(
-      color: selected ? const Color(0xFF1D4ED8) : Colors.transparent,
+      color: selected ? AppColors.primary : Colors.transparent,
       borderRadius: BorderRadius.circular(10),
       child: InkWell(
         borderRadius: BorderRadius.circular(10),
@@ -827,10 +837,10 @@ class _BulkReportCardsViewerState extends State<_BulkReportCardsViewer> {
                         : const Icon(Icons.picture_as_pdf_rounded),
                     label: Text(
                       busy ? 'Working…' : 'Generate all PDFs',
-                      style: const TextStyle(fontWeight: FontWeight.w800),
+                      style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1D4ED8),
+                      backgroundColor: AppColors.primary,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
@@ -853,7 +863,7 @@ class _BulkReportCardsViewerState extends State<_BulkReportCardsViewer> {
                       style: TextStyle(fontWeight: FontWeight.w800),
                     ),
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF1D4ED8),
+                      foregroundColor: AppColors.primary,
                       padding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),

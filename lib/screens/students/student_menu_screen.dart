@@ -20,7 +20,7 @@ class StudentMenuScreen extends StatelessWidget {
         icon: Icons.person_add_alt_1_rounded,
         title: 'Register Student',
         subtitle: 'Add a new student to the school',
-        color: const Color(0xFF2563EB),
+        color: AppColors.primary,
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const StudentRegistrationScreen()),

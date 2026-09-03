@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
 
 import '../../core/widgets/premium_feedback.dart';
 import '../../models/teacher.dart';
@@ -85,7 +86,7 @@ class StaffIdCardPreviewScreen extends StatelessWidget {
                                 offset: const Offset(0, 8),
                               ),
                             ],
-                            gradient: const LinearGradient(
+                            gradient: LinearGradient(
                               colors: [
                                 Color(0xFF134E4A),
                                 Color(0xFF0F766E),
@@ -137,13 +138,13 @@ class StaffIdCardPreviewScreen extends StatelessWidget {
                                           ),
                                         ),
                                         const SizedBox(width: 10),
-                                        const Expanded(
+                                        Expanded(
                                           child: Column(
                                             crossAxisAlignment:
                                                 CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'HAPPY SCHOOL',
+                                                SchoolProfileController.instance.name.toUpperCase(),
                                                 style: TextStyle(
                                                   color: Colors.white,
                                                   fontWeight: FontWeight.w900,
@@ -295,8 +296,8 @@ class StaffIdCardPreviewScreen extends StatelessWidget {
                                       vertical: 7,
                                     ),
                                     color: const Color(0xFFF0FDFA),
-                                    child: const Text(
-                                      'Authorized staff identification · Happy School',
+                                    child: Text(
+                                      'Authorized staff identification · ${SchoolProfileController.instance.name}',
                                       textAlign: TextAlign.center,
                                       style: TextStyle(
                                         fontSize: 9,

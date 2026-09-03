@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import '../core/theme/app_colors.dart';
 
 import '../models/announcement.dart';
 import '../services/announcement_storage.dart';
@@ -104,13 +105,13 @@ class _AnnouncementMarqueeState extends State<AnnouncementMarquee>
       child: Container(
         height: 44,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3A8A), AppColors.primary],
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1D4ED8).withValues(alpha: 0.18),
+              color: AppColors.primary.withValues(alpha: 0.18),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),

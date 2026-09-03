@@ -132,10 +132,10 @@ class PremiumForm {
             : Icon(icon, size: 20),
         label: Text(
           label,
-          style: const TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.4),
+          style: TextStyle(fontWeight: FontWeight.w800, letterSpacing: 0.4),
         ),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF1D4ED8),
+          backgroundColor: AppColors.primary,
           foregroundColor: Colors.white,
           elevation: 0,
           shape: RoundedRectangleBorder(

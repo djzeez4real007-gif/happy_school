@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
+import '../../core/school_branding.dart';
+import '../../../core/theme/app_colors.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/app_shell.dart';
@@ -95,7 +98,13 @@ class _SplashScreenState extends State<SplashScreen>
     if (!mounted) return;
 
     try {
-      await precacheImage(const AssetImage(_logoAsset), context);
+      try {
+        await precacheImage(SchoolBranding.logoProvider(), context);
+      } catch (_) {
+        try {
+          await precacheImage(const AssetImage(_logoAsset), context);
+        } catch (_) {}
+      }
       if (!mounted) return;
       setState(() {
         _logoReady = true;
@@ -169,16 +178,16 @@ class _SplashScreenState extends State<SplashScreen>
           ],
           image: _logoFailed
               ? null
-              : const DecorationImage(
-                  image: AssetImage(_logoAsset),
+              : DecorationImage(
+                  image: SchoolBranding.logoProvider(),
                   fit: BoxFit.cover,
                 ),
         ),
         child: _logoFailed
-            ? const Icon(
+            ? Icon(
                 Icons.school_rounded,
                 size: 60,
-                color: Color(0xFF1D4ED8),
+                color: AppColors.primary,
               )
             : (!_logoReady
                 ? const Padding(
@@ -197,18 +206,18 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF071433),
-                    Color(0xFF0F2A6B),
-                    Color(0xFF1D4ED8),
+                    const Color(0xFF071433),
+                    const Color(0xFF0F2A6B),
+                    AppColors.primary,
                   ],
-                  stops: [0.0, 0.5, 1.0],
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
             ),
@@ -265,8 +274,8 @@ class _SplashScreenState extends State<SplashScreen>
                         position: _textSlide,
                         child: Column(
                           children: [
-                            const Text(
-                              'HAPPY SCHOOL',
+                            Text(
+                              SchoolProfileController.instance.name.toUpperCase(),
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.white,
@@ -281,7 +290,7 @@ class _SplashScreenState extends State<SplashScreen>
                               height: 3,
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(4),
-                                gradient: const LinearGradient(
+                                gradient: LinearGradient(
                                   colors: [
                                     Color(0xFF93C5FD),
                                     Color(0xFFFFFFFF),

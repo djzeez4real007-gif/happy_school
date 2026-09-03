@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 import '../../core/utils/sessions.dart';
 import '../../models/student_fee_payment.dart';
@@ -448,7 +449,7 @@ class _FinancialReportsScreenState extends State<FinancialReportsScreen> {
 
                   summaryCard(
                     icon: Icons.account_balance_wallet_rounded,
-                    color: const Color(0xFF2563EB),
+                    color: AppColors.primary,
                     title: 'Total School Fees (expected)',
                     value: money(expectedFees),
                   ),

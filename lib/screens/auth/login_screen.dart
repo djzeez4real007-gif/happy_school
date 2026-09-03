@@ -1,6 +1,9 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
+import '../../core/school_branding.dart';
+import '../../../core/theme/app_colors.dart';
 
 import '../../services/auth_service.dart';
 import '../../widgets/app_shell.dart';
@@ -148,18 +151,18 @@ class _LoginScreenState extends State<LoginScreen>
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    Color(0xFF0B1B3D),
-                    Color(0xFF132A5C),
-                    Color(0xFF1D4ED8),
+                    const Color(0xFF0B1B3D),
+                    const Color(0xFF132A5C),
+                    AppColors.primary,
                   ],
-                  stops: [0.0, 0.45, 1.0],
+                  stops: const [0.0, 0.45, 1.0],
                 ),
               ),
             ),
@@ -227,14 +230,14 @@ class _LoginScreenState extends State<LoginScreen>
             border: Border.all(color: Colors.white, width: 3),
           ),
           child: ClipOval(
-            child: Image.asset(
-              'assets/images/school_logo.png',
+            child: Image(
+              image: SchoolBranding.logoProvider(),
               width: 110,
               height: 110,
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) {
                 return Container(
-                  color: const Color(0xFF1D4ED8),
+                  color: AppColors.primary,
                   alignment: Alignment.center,
                   child: const Icon(
                     Icons.school_rounded,
@@ -247,8 +250,8 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         ),
         const SizedBox(height: 22),
-        const Text(
-          'Happy School ERP',
+        Text(
+          '${SchoolProfileController.instance.name} ERP',
           textAlign: TextAlign.center,
           style: TextStyle(
             color: Colors.white,
@@ -371,7 +374,7 @@ class _LoginScreenState extends State<LoginScreen>
                 child: ElevatedButton(
                   onPressed: loading ? null : _login,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1D4ED8),
+                    backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
@@ -387,7 +390,7 @@ class _LoginScreenState extends State<LoginScreen>
                             color: Colors.white,
                           ),
                         )
-                      : const Row(
+                      : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(Icons.login_rounded, size: 20),
@@ -409,7 +412,7 @@ class _LoginScreenState extends State<LoginScreen>
         ),
         const SizedBox(height: 28),
         Text(
-          'Happy School · Academic Management Platform',
+          '${SchoolProfileController.instance.name} · Academic Management Platform',
           style: TextStyle(
             color: Colors.white.withValues(alpha: 0.55),
             fontSize: 12,
@@ -458,7 +461,7 @@ class _LoginScreenState extends State<LoginScreen>
                       height: 88,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: [Color(0xFF22C55E), Color(0xFF16A34A)],
                         ),
                         boxShadow: [
@@ -559,7 +562,7 @@ class _LoginScreenState extends State<LoginScreen>
   }) {
     return InputDecoration(
       hintText: hint,
-      prefixIcon: Icon(icon, color: const Color(0xFF1D4ED8)),
+      prefixIcon: Icon(icon, color: AppColors.primary),
       suffixIcon: suffix,
       filled: true,
       fillColor: const Color(0xFFF8FAFC),
@@ -574,7 +577,7 @@ class _LoginScreenState extends State<LoginScreen>
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
-        borderSide: const BorderSide(color: Color(0xFF1D4ED8), width: 1.6),
+        borderSide: BorderSide(color: AppColors.primary, width: 1.6),
       ),
     );
   }

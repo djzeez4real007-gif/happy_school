@@ -1,6 +1,8 @@
+import '../../widgets/licence_banner.dart';
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -408,7 +410,7 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
       body: RefreshIndicator(
         onRefresh: _load,
         child: loading
-            ? const Center(child: CircularProgressIndicator())
+            ? Center(child: CircularProgressIndicator())
             : CustomScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
@@ -432,7 +434,7 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
                           '$totalStudents',
                           'Registry',
                           Icons.school_rounded,
-                          const Color(0xFF2563EB),
+                          AppColors.primary,
                         ),
                         _miniStat(
                           'This session',
@@ -523,7 +525,7 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
               gradient: LinearGradient(
                 begin: Alignment(-1.0 + 2 * _lineController.value, 0),
                 end: Alignment(1.0 + 2 * _lineController.value, 0),
-                colors: const [
+                colors: [
                   Color(0x003B82F6),
                   Color(0xFF3B82F6),
                   Color(0xFF60A5FA),
@@ -545,19 +547,19 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
       padding: const EdgeInsets.fromLTRB(20, 18, 20, 16),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
+        gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
           colors: [
-            Color(0xFF0F172A),
-            Color(0xFF1D4ED8),
-            Color(0xFF3B82F6),
+            const Color(0xFF0F172A),
+            AppColors.primary,
+            const Color(0xFF3B82F6),
           ],
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1D4ED8).withValues(alpha: 0.25),
+            color: AppColors.primary.withValues(alpha: 0.25),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -566,6 +568,7 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          const LicenceBanner(),
           Row(
             children: [
               Expanded(
@@ -936,8 +939,8 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.event_available_rounded,
-                  color: Color(0xFF1D4ED8), size: 20),
+              Icon(Icons.event_available_rounded,
+                  color: AppColors.primary, size: 20),
               const SizedBox(width: 8),
               Text(
                 'Attendance · today',
@@ -951,10 +954,10 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
                 attendanceMarked == 0
                     ? 'Not marked'
                     : '${(rate * 100).toStringAsFixed(0)}% present',
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
-                  color: Color(0xFF1D4ED8),
+                  color: AppColors.primary,
                 ),
               ),
             ],
@@ -997,13 +1000,13 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
       child: Container(
         height: 42,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF1E3A8A), Color(0xFF2563EB)],
+          gradient: LinearGradient(
+            colors: [Color(0xFF1E3A8A), AppColors.primary],
           ),
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF1D4ED8).withValues(alpha: 0.2),
+              color: AppColors.primary.withValues(alpha: 0.2),
               blurRadius: 10,
               offset: const Offset(0, 4),
             ),
@@ -1060,7 +1063,7 @@ class _DashboardScreenState extends State<AdminDashboardScreen>
       child: Column(
         children: [
           Text(
-            '© $year Happy School. All Rights Reserved.',
+            '© $year ${SchoolProfileController.instance.name}. All Rights Reserved.',
             textAlign: TextAlign.center,
             style: TextStyle(
               fontSize: 12,

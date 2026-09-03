@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 import '../../core/permissions.dart';
 import '../../services/auth_service.dart';
@@ -10,7 +11,7 @@ import '../staff/non_teaching_staff_list_screen.dart';
 class RegisterHubScreen extends StatelessWidget {
   const RegisterHubScreen({super.key});
 
-  static const Color primaryBlue = Color(0xFF1D4ED8);
+  Color get primaryBlue => AppColors.primary;
 
   @override
   Widget build(BuildContext context) {

@@ -100,7 +100,7 @@ class _StudentPortalAdminScreenState extends State<StudentPortalAdminScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('Student portal access'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: loading

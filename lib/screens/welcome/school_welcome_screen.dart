@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../../core/school_profile_controller.dart';
+import '../../core/school_branding.dart';
 
 import '../../models/welcome_media.dart';
 import '../../services/welcome_media_storage.dart';
@@ -215,29 +217,32 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
                               color: Colors.white,
                               border:
                                   Border.all(color: Colors.white, width: 2),
-                              image: const DecorationImage(
-                                image: AssetImage(
-                                    'assets/images/school_logo.png'),
+                              image: DecorationImage(
+                                image: SchoolBranding.logoProvider(),
                                 fit: BoxFit.cover,
                               ),
                             ),
                           ),
                           const SizedBox(width: 12),
-                          const Expanded(
+                          Expanded(
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Happy School',
-                                  style: TextStyle(
+                                  SchoolProfileController.instance.name,
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 20,
                                   ),
                                 ),
                                 Text(
-                                  'ERP System',
-                                  style: TextStyle(
+                                  SchoolBranding.motto.isNotEmpty
+                                      ? SchoolBranding.motto
+                                      : 'ERP System',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
                                     color: Colors.white70,
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w600,
@@ -308,14 +313,14 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
                             onPressed: _goLogin,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors.white,
-                              foregroundColor: const Color(0xFF1D4ED8),
+                              foregroundColor: SchoolProfileController.instance.primary,
                               elevation: 0,
                               padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),
                             ),
-                            child: const Row(
+                            child: Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
@@ -352,11 +357,11 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
                             final narrow = c.maxWidth < 700;
                             final items = [
                               _hInfo(Icons.location_on_rounded, 'Address',
-                                  'Bolakale St. Checking Point, Ilorin'),
+                                  SchoolProfileController.instance.address),
                               _hInfo(Icons.phone_rounded, 'Contact',
-                                  '07068791117'),
+                                  SchoolProfileController.instance.phone),
                               _hInfo(Icons.email_rounded, 'Email',
-                                  'thehappyone2019@gmail.com'),
+                                  SchoolProfileController.instance.email),
                               _hInfo(Icons.code_rounded, 'Developed by',
                                   'Happy Enterprise'),
                             ];
@@ -392,7 +397,7 @@ class _SchoolWelcomeScreenState extends State<SchoolWelcomeScreen>
                       ),
                       const SizedBox(height: 10),
                       Text(
-                        '© ${DateTime.now().year} Happy School · All Rights Reserved',
+                        '© ${DateTime.now().year} ${SchoolProfileController.instance.name} · All Rights Reserved',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           color: Colors.white.withValues(alpha: 0.45),

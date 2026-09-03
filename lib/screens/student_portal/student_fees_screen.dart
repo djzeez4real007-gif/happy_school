@@ -88,7 +88,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('My fees'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       body: loading
@@ -103,7 +103,7 @@ class _StudentFeesScreenState extends State<StudentFeesScreen> {
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [Color(0xFF064E3B), Color(0xFF059669)],
                       ),
                       borderRadius: BorderRadius.circular(16),

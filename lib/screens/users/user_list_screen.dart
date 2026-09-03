@@ -21,7 +21,7 @@ class _UserListScreenState extends State<UserListScreen> {
   bool loading = true;
   final Set<String> _expanded = {}; // folders closed by default
 
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   /// Display order of role folders
   static const _roleOrder = [
@@ -49,12 +49,20 @@ class _UserListScreenState extends State<UserListScreen> {
   Future<void> loadUsers() async {
     setState(() => loading = true);
     final data = await UserStorage.getUsers();
-    data.sort(
+    final role = AuthService.currentRole.toLowerCase();
+    final filtered = role == 'vendor'
+        ? data
+        : data
+            .where((u) =>
+                u.role.toLowerCase() != 'vendor' &&
+                u.username.toLowerCase() != 'hs.vendor')
+            .toList();
+    filtered.sort(
       (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()),
     );
     if (!mounted) return;
     setState(() {
-      users = data;
+      users = filtered;
       loading = false;
     });
   }
@@ -116,7 +124,7 @@ class _UserListScreenState extends State<UserListScreen> {
       case 'principal':
         return const Color(0xFF7C3AED);
       case 'class_teacher':
-        return const Color(0xFF1D4ED8);
+        return AppColors.primary;
       case 'subject_teacher':
         return const Color(0xFF0D9488);
       case 'accountant':

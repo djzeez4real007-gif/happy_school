@@ -1390,7 +1390,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
       backgroundColor: AppColors.scaffold(context),
 
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         elevation: 0,
         foregroundColor: Colors.white,
         title: const Text(

@@ -186,7 +186,7 @@ class _NonTeachingStaffFormScreenState
             Container(
               padding: const EdgeInsets.all(14),
               decoration: BoxDecoration(
-                gradient: const LinearGradient(
+                gradient: LinearGradient(
                   colors: [Color(0xFF0F766E), Color(0xFF14B8A6)],
                 ),
                 borderRadius: BorderRadius.circular(16),

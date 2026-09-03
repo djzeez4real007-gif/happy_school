@@ -565,7 +565,7 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         title: const Text(
           "Attendance",
@@ -612,13 +612,13 @@ class _AttendanceScreenState extends State<AttendanceScreen> {
 
                 const SizedBox(height: 12),
 
-DropdownButtonFormField<SchoolClass>(
-                  initialValue: selectedClass,
+DropdownButtonFormField<String>(
+                  value: selectedClass?.fullClassName,
+                  isExpanded: true,
                   decoration: InputDecoration(
                     labelText: "Select Class",
-                    prefixIcon: const Icon(Icons.school_rounded, color: Color(0xFF1D4ED8)),
+                    prefixIcon: Icon(Icons.school_rounded, color: AppColors.primary),
                     filled: true,
-                    
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(14),
                       borderSide: BorderSide(color: Colors.grey.shade200),
@@ -629,8 +629,8 @@ DropdownButtonFormField<SchoolClass>(
                     ),
                   ),
                   items: classes.map((schoolClass) {
-                    return DropdownMenuItem<SchoolClass>(
-                      value: schoolClass,
+                    return DropdownMenuItem<String>(
+                      value: schoolClass.fullClassName,
                       child: Text(schoolClass.fullClassName),
                     );
                   }).toList(),
@@ -639,7 +639,17 @@ DropdownButtonFormField<SchoolClass>(
                   },
                   onChanged: (value) async {
                     setState(() {
-                      selectedClass = value;
+                      if (value == null) {
+                        selectedClass = null;
+                      } else {
+                        try {
+                          selectedClass = classes.firstWhere(
+                            (c) => c.fullClassName == value,
+                          );
+                        } catch (_) {
+                          selectedClass = null;
+                        }
+                      }
                       students = [];
                       filteredStudents = [];
                       selectedStudents.clear();

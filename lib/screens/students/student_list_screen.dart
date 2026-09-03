@@ -26,7 +26,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
   final TextEditingController searchController = TextEditingController();
 
   
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   @override
   void initState() {
@@ -131,7 +131,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: assigned
-                          ? [const Color(0xFF1D4ED8), const Color(0xFF3B82F6)]
+                          ? [AppColors.primary, const Color(0xFF3B82F6)]
                           : [Colors.orange.shade400, Colors.orange.shade600],
                     ),
                     borderRadius: BorderRadius.circular(14),
@@ -185,7 +185,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
                             fontSize: 11.5,
                             fontWeight: FontWeight.w600,
                             color: assigned
-                                ? const Color(0xFF1D4ED8)
+                                ? AppColors.primary
                                 : Colors.orange.shade800,
                           ),
                         ),
@@ -216,7 +216,7 @@ class _StudentListScreenState extends State<StudentListScreen> {
         foregroundColor: Colors.white,
         title: Text(
           'Students (${filteredStudents.length})',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       body: Column(

@@ -68,7 +68,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen> {
   Color _gradeColor(String g) {
     final x = g.toUpperCase();
     if (x.startsWith('A') || x.startsWith('B')) return const Color(0xFF059669);
-    if (x.startsWith('C')) return const Color(0xFF2563EB);
+    if (x.startsWith('C')) return AppColors.primary;
     if (x.startsWith('D') || x.startsWith('E')) return const Color(0xFFD97706);
     return const Color(0xFFDC2626);
   }
@@ -84,7 +84,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('My results'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
@@ -93,7 +93,7 @@ class _StudentResultsScreenState extends State<StudentResultsScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-            color: const Color(0xFF1D4ED8),
+            color: AppColors.primary,
             child: Column(
               children: [
                 Row(

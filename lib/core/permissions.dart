@@ -23,6 +23,8 @@ class Permissions {
   static const String classAverages = 'class_averages';
   static const String alumni = 'alumni';
   static const String media = 'media';
+  static const String licence = 'licence';
+  static const String viewPlans = 'view_plans';
   static const String myTeaching = 'my_teaching';
   static const String assignTeacherSubjects = 'assign_teacher_subjects';
   static const String studentPortal = 'student_portal';
@@ -30,12 +32,31 @@ class Permissions {
 
   static bool canAccess(String role, String feature) {
     switch (role) {
-      case 'admin':
-      case 'principal':
-        // Full access except role-specific portals
+      case 'vendor':
+        // Hidden owner login — full access including licence & billing
         if (feature == studentPortal ||
             feature == parentPortal ||
             feature == myTeaching) {
+          return false;
+        }
+        return true;
+
+      case 'admin':
+        // School admin — cannot manage commercial licence
+        if (feature == studentPortal ||
+            feature == parentPortal ||
+            feature == myTeaching ||
+            feature == licence) {
+          return false;
+        }
+        return true;
+
+      case 'principal':
+        // Full access except portals + commercial licence settings
+        if (feature == studentPortal ||
+            feature == parentPortal ||
+            feature == myTeaching ||
+            feature == licence) {
           return false;
         }
         return true;
@@ -90,12 +111,10 @@ class Permissions {
   }
 
   static bool canManageUsers(String role) =>
-      role == 'admin' || role == 'principal';
+      role == 'admin' || role == 'principal' || role == 'vendor';
 
-  /// Only Administrator can delete users (not Principal).
-  static bool canDeleteUser(String actorRole, [String? targetRole]) {
-    return actorRole == 'admin';
-  }
+  /// Only Administrator / vendor can delete users (not Principal).
+  /// Vendor account itself cannot be deleted.
 
   /// Principal may view fees but not set amounts or record payments.
   static bool canEditFees(String role) {
@@ -117,5 +136,13 @@ class Permissions {
   static bool canManageAnnouncements(String role) {
     // Class teacher, subject teacher, parent: view only
     return role == 'admin' || role == 'principal';
+  }
+
+  static bool isVendorRole(String? role) =>
+      (role ?? '').trim().toLowerCase() == 'vendor';
+
+  static bool canDeleteUser(String actorRole, [String? targetRole]) {
+    if (Permissions.isVendorRole(targetRole)) return false;
+    return actorRole == 'admin' || actorRole == 'vendor';
   }
 }

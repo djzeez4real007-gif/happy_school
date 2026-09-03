@@ -69,7 +69,7 @@ class _ParentHomeDashboardState extends State<ParentHomeDashboard> {
                   Container(
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
+                      gradient: LinearGradient(
                         colors: [Color(0xFF4C1D95), Color(0xFF7C3AED)],
                       ),
                       borderRadius: BorderRadius.circular(20),

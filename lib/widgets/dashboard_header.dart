@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/theme/app_colors.dart';
 
 import '../services/auth_service.dart';
 import '../models/app_user.dart';
@@ -22,15 +23,15 @@ class DashboardHeader extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB), Color(0xFF3B82F6)],
+        gradient: LinearGradient(
+          colors: [Color(0xFF1E3A8A), AppColors.primary, Color(0xFF3B82F6)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1D4ED8).withValues(alpha: 0.25),
+            color: AppColors.primary.withValues(alpha: 0.25),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

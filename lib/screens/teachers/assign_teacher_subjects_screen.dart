@@ -117,7 +117,7 @@ class _AssignTeacherSubjectsScreenState
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('Assign subjects to teacher'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           TextButton(
@@ -142,7 +142,7 @@ class _AssignTeacherSubjectsScreenState
         ],
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : Row(
               children: [
                 // Teacher list
@@ -172,9 +172,9 @@ class _AssignTeacherSubjectsScreenState
                             return ListTile(
                               selected: selected,
                               selectedTileColor:
-                                  const Color(0xFF2563EB).withValues(alpha: 0.1),
+                                  AppColors.primary.withValues(alpha: 0.1),
                               leading: CircleAvatar(
-                                backgroundColor: const Color(0xFF2563EB),
+                                backgroundColor: AppColors.primary,
                                 child: Text(
                                   t.surname.isNotEmpty
                                       ? t.surname[0].toUpperCase()
@@ -239,9 +239,9 @@ class _AssignTeacherSubjectsScreenState
                                   const SizedBox(height: 8),
                                   Text(
                                     '${selectedCodes.length} selected',
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFF1D4ED8),
+                                      color: AppColors.primary,
                                     ),
                                   ),
                                 ],
@@ -283,10 +283,10 @@ class _AssignTeacherSubjectsScreenState
                               padding: const EdgeInsets.all(16),
                               child: ElevatedButton.icon(
                                 onPressed: saving ? null : _save,
-                                icon: const Icon(Icons.save_rounded),
+                                icon: Icon(Icons.save_rounded),
                                 label: const Text('Save subjects for teacher'),
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF1D4ED8),
+                                  backgroundColor: AppColors.primary,
                                   foregroundColor: Colors.white,
                                   minimumSize: const Size.fromHeight(48),
                                 ),

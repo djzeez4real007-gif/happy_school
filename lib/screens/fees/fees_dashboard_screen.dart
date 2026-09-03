@@ -115,7 +115,7 @@ class _FeesDashboardScreenState extends State<FeesDashboardScreen> {
         icon: Icons.settings_rounded,
         title: 'Fee Settings',
         subtitle: 'Set school fee amounts',
-        color: const Color(0xFF2563EB),
+        color: AppColors.primary,
         page: const SchoolFeeScreen(),
       ),
       _FeeItem(

@@ -15,7 +15,7 @@ class SchoolClass {
     required this.capacity,
   });
 
-  String get fullClassName => "$className $arm";
+  String get fullClassName => "$className $arm".trim();
 
   Map<String, dynamic> toMap() {
     return {
@@ -36,4 +36,14 @@ class SchoolClass {
       capacity: map['capacity'] ?? 0,
     );
   }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is SchoolClass &&
+        fullClassName.toLowerCase() == other.fullClassName.toLowerCase();
+  }
+
+  @override
+  int get hashCode => fullClassName.toLowerCase().hashCode;
 }

@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/theme/app_colors.dart';
 
 import '../../models/student.dart';
 import '../../models/student_class.dart';
@@ -327,7 +328,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
                         ? const Color(0xFF64748B)
                         : repeated
                             ? const Color(0xFFD97706)
-                            : const Color(0xFF2563EB);
+                            : AppColors.primary;
                 final icon = graduated
                     ? Icons.workspace_premium_rounded
                     : leftSchool

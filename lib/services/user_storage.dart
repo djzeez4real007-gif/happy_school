@@ -79,6 +79,10 @@ class UserStorage {
       if (raw is! Map) continue;
       final existing = AppUser.fromMap(Map<String, dynamic>.from(raw));
       if (existing.id == id) {
+        if (existing.role == 'vendor' ||
+            existing.username.toLowerCase() == 'hs.vendor') {
+          throw Exception('Cannot delete the vendor account');
+        }
         await _box.deleteAt(i);
         await _box.flush();
         return;

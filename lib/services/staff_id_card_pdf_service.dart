@@ -1,4 +1,5 @@
 import 'package:pdf/pdf.dart';
+import '../core/school_profile_controller.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
 
@@ -15,7 +16,7 @@ class StaffIdCardPdfService {
         build: (context) {
           return pw.Container(
             decoration: pw.BoxDecoration(
-              gradient: const pw.LinearGradient(
+              gradient: pw.LinearGradient(
                 colors: [PdfColor.fromInt(0xFF134E4A), PdfColor.fromInt(0xFF0D9488)],
                 begin: pw.Alignment.topLeft,
                 end: pw.Alignment.bottomRight,
@@ -36,7 +37,7 @@ class StaffIdCardPdfService {
                     mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
                     children: [
                       pw.Text(
-                        'HAPPY SCHOOL',
+                        SchoolProfileController.instance.name.toUpperCase(),
                         style: pw.TextStyle(
                           fontSize: 13,
                           fontWeight: pw.FontWeight.bold,

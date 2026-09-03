@@ -109,7 +109,7 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('Audit Log'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -279,10 +279,10 @@ class _AuditLogScreenState extends State<AuditLogScreen> {
                                     e.action
                                         .replaceAll('_', ' ')
                                         .toUpperCase(),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w800,
-                                      color: Color(0xFF1D4ED8),
+                                      color: AppColors.primary,
                                       letterSpacing: 0.4,
                                     ),
                                   ),

@@ -69,7 +69,7 @@ class _UnassignedStudentsScreenState extends State<UnassignedStudentsScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: Text('Unassigned (${unassigned.length})'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         actions: [
           IconButton(
@@ -79,7 +79,7 @@ class _UnassignedStudentsScreenState extends State<UnassignedStudentsScreen> {
         ],
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
@@ -90,7 +90,7 @@ class _UnassignedStudentsScreenState extends State<UnassignedStudentsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: const Color(0xFFFDBA74)),
                   ),
-                  child: const Row(
+                  child: Row(
                     children: [
                       Icon(Icons.info_outline, color: Color(0xFFC2410C)),
                       SizedBox(width: 10),

@@ -328,7 +328,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                             shape: BoxShape.circle,
                             color: const Color(0xFFEFF6FF),
                             border: Border.all(
-                              color: const Color(0xFF2563EB).withValues(alpha: 0.35),
+                              color: AppColors.primary.withValues(alpha: 0.35),
                               width: 2,
                             ),
                             image: passportImage != null
@@ -339,7 +339,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                                 : null,
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF2563EB)
+                                color: AppColors.primary
                                     .withValues(alpha: 0.12),
                                 blurRadius: 12,
                                 offset: const Offset(0, 4),
@@ -347,10 +347,10 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
                             ],
                           ),
                           child: passportImage == null
-                              ? const Icon(
+                              ? Icon(
                                   Icons.camera_alt_rounded,
                                   size: 36,
-                                  color: Color(0xFF2563EB),
+                                  color: AppColors.primary,
                                 )
                               : null,
                         ),

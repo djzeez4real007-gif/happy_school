@@ -17,7 +17,7 @@ class _AbsentStudentsScreenState extends State<AbsentStudentsScreen> {
   final sessions = Sessions.list();
   List<Map<String, String>> rows = [];
 
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   @override
   void initState() {
@@ -136,9 +136,9 @@ class _AbsentStudentsScreenState extends State<AbsentStudentsScreen> {
           Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 18),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF1D4ED8), Color(0xFF3B82F6)],
+                colors: [AppColors.primary, Color(0xFF3B82F6)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

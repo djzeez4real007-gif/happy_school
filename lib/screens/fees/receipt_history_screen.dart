@@ -138,9 +138,9 @@ class _ReceiptHistoryScreenState extends State<ReceiptHistoryScreen> {
               right: 16,
               bottom: 16,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+                colors: [Color(0xFF0F172A), AppColors.primary],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),
@@ -284,8 +284,8 @@ class _ReceiptHistoryScreenState extends State<ReceiptHistoryScreen> {
                                                       Color(0xFF059669),
                                                       Color(0xFF34D399),
                                                     ]
-                                                  : const [
-                                                      Color(0xFF1D4ED8),
+                                                  : [
+                                                      AppColors.primary,
                                                       Color(0xFF60A5FA),
                                                     ],
                                             ),
@@ -363,7 +363,7 @@ class _ReceiptHistoryScreenState extends State<ReceiptHistoryScreen> {
                                                   _chip(
                                                     r.className,
                                                     const Color(0xFFEFF6FF),
-                                                    const Color(0xFF1D4ED8),
+                                                    AppColors.primary,
                                                   ),
                                                   if (r.session.isNotEmpty)
                                                     _chip(

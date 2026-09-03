@@ -1,3 +1,5 @@
+import '../core/school_branding.dart';
+import '../core/school_profile_controller.dart';
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -34,6 +36,8 @@ class ReceiptPdfService {
   }
 
   static Future<Uint8List?> _logoBytes() async {
+    final custom = SchoolBranding.logoBytes;
+    if (custom != null && custom.isNotEmpty) return custom;
     try {
       final data = await rootBundle.load('assets/images/school_logo.png');
       return data.buffer.asUint8List();
@@ -145,7 +149,7 @@ class ReceiptPdfService {
                       pw.Container(
                         width: 48,
                         height: 48,
-                        decoration: const pw.BoxDecoration(
+                        decoration: pw.BoxDecoration(
                           shape: pw.BoxShape.circle,
                           color: PdfColors.white,
                         ),
@@ -162,7 +166,7 @@ class ReceiptPdfService {
                       ),
                     pw.SizedBox(height: 10),
                     pw.Text(
-                      'HAPPY SCHOOL',
+                      SchoolProfileController.instance.name.toUpperCase(),
                       style: pw.TextStyle(
                         color: PdfColors.white,
                         fontWeight: pw.FontWeight.bold,
@@ -362,7 +366,7 @@ class ReceiptPdfService {
               pw.SizedBox(height: 6),
               pw.Center(
                 child: pw.Text(
-                  'Happy School Management System',
+                  SchoolProfileController.instance.name + ' Management System',
                   style: pw.TextStyle(
                     color: _greenDark,
                     fontSize: 9,
@@ -402,7 +406,7 @@ class ReceiptPdfService {
     await SharePlus.instance.share(
       ShareParams(
         files: [XFile(file.path)],
-        text: 'Happy School Fee Receipt — ${payment.studentName}',
+        text: '${SchoolProfileController.instance.name} Fee Receipt — ${payment.studentName}',
       ),
     );
   }

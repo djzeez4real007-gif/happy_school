@@ -21,7 +21,7 @@ class _ClassListScreenState extends State<ClassListScreen> {
   late String selectedSession;
   final List<String> sessions = Sessions.list();
 
-  static const Color _primary = Color(0xFF1D4ED8);
+  Color get _primary => AppColors.primary;
 
   @override
   void initState() {
@@ -144,7 +144,7 @@ class _ClassListScreenState extends State<ClassListScreen> {
         foregroundColor: Colors.white,
         title: Text(
           'Classes (${classes.length})',
-          style: const TextStyle(fontWeight: FontWeight.w700),
+          style: TextStyle(fontWeight: FontWeight.w700),
         ),
       ),
       floatingActionButton: FloatingActionButton.extended(
@@ -318,11 +318,11 @@ class _ClassListScreenState extends State<ClassListScreen> {
                                                   ),
                                                   child: Text(
                                                     '$count student${count == 1 ? '' : 's'}',
-                                                    style: const TextStyle(
+                                                    style: TextStyle(
                                                       fontSize: 11.5,
                                                       fontWeight:
                                                           FontWeight.w700,
-                                                      color: Color(0xFF1D4ED8),
+                                                      color: AppColors.primary,
                                                     ),
                                                   ),
                                                 ),

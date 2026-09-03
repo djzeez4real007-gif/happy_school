@@ -73,7 +73,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: Text('Teachers (${teachers.length})'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
       ),
       floatingActionButton: FloatingActionButton.extended(

@@ -195,14 +195,14 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
               right: 12,
               bottom: 18,
             ),
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
                 colors: [
                   Color(0xFF0F172A),
                   Color(0xFF1E3A8A),
-                  Color(0xFF2563EB),
+                  AppColors.primary,
                 ],
               ),
               borderRadius: BorderRadius.only(
@@ -243,8 +243,8 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
                       width: 64,
                       height: 64,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF60A5FA), Color(0xFF2563EB)],
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF60A5FA), AppColors.primary],
                         ),
                         borderRadius: BorderRadius.circular(18),
                         border: Border.all(color: Colors.white24, width: 2),
@@ -333,7 +333,7 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
           // ===== Body =====
           Expanded(
             child: loading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator())
                 : ListView(
                     padding: const EdgeInsets.fromLTRB(16, 18, 16, 32),
                     children: [
@@ -349,7 +349,7 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
                             results.isEmpty
                                 ? '—'
                                 : resultAverage.toStringAsFixed(1),
-                            const Color(0xFF1D4ED8),
+                            AppColors.primary,
                             Icons.insights_rounded,
                           ),
                           const SizedBox(width: 10),
@@ -546,7 +546,7 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
       padding: const EdgeInsets.only(bottom: 10),
       child: Row(
         children: [
-          Icon(icon, size: 20, color: const Color(0xFF1D4ED8)),
+          Icon(icon, size: 20, color: AppColors.primary),
           const SizedBox(width: 8),
           Text(
             title,
@@ -681,9 +681,9 @@ class _ParentChildDetailScreenState extends State<ParentChildDetailScreen> {
               ),
               child: Text(
                 tt.day.substring(0, 3),
-                style: const TextStyle(
+                style: TextStyle(
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF1D4ED8),
+                  color: AppColors.primary,
                 ),
               ),
             ),

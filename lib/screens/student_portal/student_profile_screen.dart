@@ -71,14 +71,14 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
         title: const Text('My profile'),
-        backgroundColor: const Color(0xFF1D4ED8),
+        backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
         elevation: 0,
       ),
       body: loading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator())
           : s == null
-              ? const Center(child: Text('Profile not found'))
+              ? Center(child: Text('Profile not found'))
               : ListView(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
                   children: [
@@ -86,8 +86,8 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                     Container(
                       padding: const EdgeInsets.all(20),
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0F172A), Color(0xFF1D4ED8)],
+                        gradient: LinearGradient(
+                          colors: [Color(0xFF0F172A), AppColors.primary],
                         ),
                         borderRadius: BorderRadius.circular(20),
                       ),

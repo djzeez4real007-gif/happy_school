@@ -36,9 +36,34 @@ class TimetableStorage {
   // ADD TIMETABLE ENTRY
   // ============================================================
 
+  static String _normPeriod(String p) {
+    final m = RegExp(r'period\s*(\d+)', caseSensitive: false).firstMatch(p.trim());
+    if (m != null) return 'Period ${m.group(1)}';
+    return p.trim().toLowerCase();
+  }
+
+  static bool _sameSlot(Timetable a, Timetable b) {
+    return a.day.trim().toLowerCase() == b.day.trim().toLowerCase() &&
+        _normPeriod(a.period) == _normPeriod(b.period) &&
+        a.className.trim().toLowerCase() == b.className.trim().toLowerCase() &&
+        a.session.trim().toLowerCase() == b.session.trim().toLowerCase() &&
+        a.term.trim().toLowerCase() == b.term.trim().toLowerCase();
+  }
+
+  /// Add or replace existing entry for same day/period/class/session/term.
   static Future<void> addTimetable(Timetable timetable) async {
     final box = await _getBox();
-
+    for (int i = 0; i < box.length; i++) {
+      final raw = box.getAt(i);
+      if (raw == null) continue;
+      try {
+        final existing = Timetable.fromMap(Map<String, dynamic>.from(raw));
+        if (_sameSlot(existing, timetable)) {
+          await box.putAt(i, timetable.toMap());
+          return;
+        }
+      } catch (_) {}
+    }
     await box.add(timetable.toMap());
   }
 
