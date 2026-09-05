@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/utils/sessions.dart';
 import '../../core/theme/app_colors.dart';
@@ -213,6 +214,7 @@ class _StudentClassAssignmentScreenState
     return Scaffold(
       backgroundColor: _bg,
       appBar: AppBar(
+        leading: AppBack.leading(context),
         elevation: 0,
         backgroundColor: _primary,
         foregroundColor: Colors.white,

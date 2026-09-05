@@ -24,6 +24,8 @@ class SchoolPosts {
 
   /// Non-teaching staff posts (Principal still logs in via Users/Roles)
   static const List<String> nonTeachingPosts = [
+    'Proprietor',
+    'Principal',
     'Vice Principal (Admin)',
     'Vice Principal (Academics)',
     'Bursar',

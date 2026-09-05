@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../models/student_fee_payment.dart';
 import '../../services/receipt_pdf_service.dart';
@@ -21,7 +22,8 @@ class ReceiptDetailsScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Receipt Details")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("Receipt Details")),
 
       body: ListView(
         padding: const EdgeInsets.all(15),

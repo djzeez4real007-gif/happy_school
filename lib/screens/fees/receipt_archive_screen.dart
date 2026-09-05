@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/theme/app_colors.dart';
 
@@ -172,7 +173,8 @@ class _ReceiptArchiveScreenState extends State<ReceiptArchiveScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
-      appBar: AppBar(title: const Text("Receipt Archive")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("Receipt Archive")),
 
       body: Column(
         children: [

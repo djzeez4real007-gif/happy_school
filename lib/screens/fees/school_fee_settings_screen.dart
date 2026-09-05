@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../models/school_fee.dart';
 import '../../models/school_class.dart';
@@ -111,7 +112,8 @@ class _SchoolFeeSettingsScreenState extends State<SchoolFeeSettingsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("School Fee Settings")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("School Fee Settings")),
       body: Column(
         children: [
           Expanded(

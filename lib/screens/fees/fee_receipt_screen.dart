@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import '../../core/school_profile_controller.dart';
 
 import '../../models/student_fee_payment.dart';
@@ -29,7 +30,8 @@ class FeeReceiptScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Payment Receipt")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("Payment Receipt")),
 
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(20),

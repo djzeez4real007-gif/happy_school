@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../core/permissions.dart';
 import '../models/app_user.dart';
@@ -373,7 +374,31 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
 
     final isDashboard = _selectedIndex == 0;
 
-    return Scaffold(
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) return;
+        // 1) Close drawer if open
+        final scaffold = _scaffoldKey.currentState;
+        if (scaffold != null && scaffold.isDrawerOpen) {
+          Navigator.of(context).pop(); // closes drawer
+          return;
+        }
+        // 2) Pop nested pushed screens (Student menu, forms, etc.)
+        final rootNav = Navigator.of(context);
+        if (rootNav.canPop()) {
+          rootNav.pop();
+          return;
+        }
+        // 3) Sidebar section → go back to Dashboard
+        if (_selectedIndex != 0) {
+          setState(() => _selectedIndex = 0);
+          return;
+        }
+        // 4) Already on Dashboard → exit app (Android)
+        SystemNavigator.pop();
+      },
+      child: Scaffold(
       key: _scaffoldKey,
       appBar: AppBar(
         backgroundColor: primaryBlue,
@@ -428,6 +453,7 @@ class _AppShellState extends State<AppShell> with SingleTickerProviderStateMixin
         child: SafeArea(child: _buildSidebarBody(items)),
       ),
       body: _buildContent(items),
+    ),
     );
   }
 

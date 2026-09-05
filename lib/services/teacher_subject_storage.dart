@@ -1,32 +1,24 @@
-import 'package:hive_flutter/hive_flutter.dart';
-
+import '../database/fs.dart';
 import '../models/teacher_subject.dart';
 
 class TeacherSubjectStorage {
   static const String boxName = 'teacher_subjects';
 
-  static Future<void> open() async {
-    if (!Hive.isBoxOpen(boxName)) {
-      await Hive.openBox(boxName);
-    }
-  }
-
-  static Box get _box => Hive.box(boxName);
-
   static Future<List<TeacherSubject>> getAll() async {
-    await open();
-    return _box.values
-        .map((e) => TeacherSubject.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
+    final list = <TeacherSubject>[];
+    for (final e in await Fs.getAll(boxName)) {
+      try {
+        list.add(TeacherSubject.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {}
+    }
+    return list;
   }
 
   static Future<List<TeacherSubject>> forTeacher(String teacherId) async {
     final id = teacherId.trim().toLowerCase();
-    if (id.isEmpty) return [];
-    final all = await getAll();
     final seen = <String>{};
     final out = <TeacherSubject>[];
-    for (final t in all) {
+    for (final t in await getAll()) {
       if (t.teacherId.trim().toLowerCase() != id) continue;
       final code = t.subjectCode.trim().toLowerCase();
       if (code.isEmpty || seen.contains(code)) continue;
@@ -40,27 +32,23 @@ class TeacherSubjectStorage {
     String teacherId,
     List<TeacherSubject> subjects,
   ) async {
-    await open();
     final id = teacherId.trim();
-    // Remove existing for this teacher
-    final toDelete = <int>[];
-    for (int i = 0; i < _box.length; i++) {
-      final raw = _box.getAt(i);
-      if (raw is! Map) continue;
-      final t = TeacherSubject.fromMap(Map<String, dynamic>.from(raw));
-      if (t.teacherId.trim().toLowerCase() == id.toLowerCase()) {
-        toDelete.add(i);
-      }
-    }
-    for (final i in toDelete.reversed) {
-      await _box.deleteAt(i);
+    for (final r in await Fs.getAll(boxName)) {
+      try {
+        final t = TeacherSubject.fromMap(Map<String, dynamic>.from(r));
+        if (t.teacherId.trim().toLowerCase() == id.toLowerCase()) {
+          final docId = r['_docId']?.toString();
+          if (docId != null) await Fs.delete(boxName, docId);
+        }
+      } catch (_) {}
     }
     final seen = <String>{};
     for (final s in subjects) {
       final code = s.subjectCode.trim().toLowerCase();
       if (code.isEmpty || seen.contains(code)) continue;
       seen.add(code);
-      await _box.add(
+      await Fs.add(
+        boxName,
         TeacherSubject(
           teacherId: id,
           subjectCode: s.subjectCode.trim(),
@@ -68,7 +56,6 @@ class TeacherSubjectStorage {
         ).toMap(),
       );
     }
-    await _box.flush();
   }
 
   static Future<void> clearForTeacher(String teacherId) async {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/utils/sessions.dart';
 import '../../core/theme/app_colors.dart';
@@ -794,6 +795,7 @@ class _BulkReportCardsViewerState extends State<_BulkReportCardsViewer> {
     final cards = widget.cards;
     return Scaffold(
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: Text('Generated (${cards.length})'),
       ),
       body: Column(

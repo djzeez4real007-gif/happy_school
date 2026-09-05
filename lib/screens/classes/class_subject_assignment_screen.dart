@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/premium_feedback.dart';
@@ -112,6 +113,7 @@ class _ClassSubjectAssignmentScreenState
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('Assign Subjects'),
         elevation: 0,
       ),

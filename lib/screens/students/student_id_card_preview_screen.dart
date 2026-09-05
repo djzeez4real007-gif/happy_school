@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import '../../core/school_profile_controller.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -54,6 +55,7 @@ class StudentIdCardPreviewScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFF0B1220),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         backgroundColor: Colors.transparent,
         elevation: 0,
         foregroundColor: Colors.white,

@@ -1,6 +1,7 @@
 // lib/screens/timetable/timetable_form_screen.dart
 
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../models/timetable.dart';
 import '../../models/school_class.dart';
@@ -475,7 +476,8 @@ class _TimetableFormScreenState extends State<TimetableFormScreen> {
     final editing = widget.timetable != null;
 
     return Scaffold(
-      appBar: AppBar(title: Text(editing ? "Edit Timetable" : "Add Timetable")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: Text(editing ? "Edit Timetable" : "Add Timetable")),
       body: loading
           ? const Center(child: CircularProgressIndicator())
           : Form(

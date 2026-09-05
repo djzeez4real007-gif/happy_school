@@ -1,25 +1,14 @@
-import '../core/school_profile_controller.dart';
+import 'dart:convert';
 import 'dart:typed_data';
 
-import 'package:hive_flutter/hive_flutter.dart';
-
+import '../core/school_profile_controller.dart';
+import '../database/fs.dart';
 import '../models/welcome_media.dart';
 
 class WelcomeMediaStorage {
   static const boxName = 'welcome_media';
   static const imagesBoxName = 'welcome_images';
-
-  static Future<void> open() async {
-    if (!Hive.isBoxOpen(boxName)) {
-      await Hive.openBox(boxName);
-    }
-    if (!Hive.isBoxOpen(imagesBoxName)) {
-      await Hive.openBox(imagesBoxName);
-    }
-  }
-
-  static Box get _box => Hive.box(boxName);
-  static Box get _images => Hive.box(imagesBoxName);
+  static final Map<String, Uint8List> _imageCache = {};
 
   static List<WelcomeSlide> defaults() => [
         WelcomeSlide(
@@ -48,7 +37,8 @@ class WelcomeMediaStorage {
           imageUrl:
               'https://images.unsplash.com/photo-1588072432836-e10032774350?w=1400&q=80',
           caption: 'Building futures',
-          subtitle: '\${SchoolProfileController.instance.name} — knowledge with character',
+          subtitle:
+              '${SchoolProfileController.instance.name} — knowledge with character',
         ),
         WelcomeSlide(
           id: '5',
@@ -59,61 +49,62 @@ class WelcomeMediaStorage {
         ),
       ];
 
+  static Future<void> open() async {}
+
   static Future<List<WelcomeSlide>> getSlides() async {
-    await open();
-    if (_box.isEmpty) {
-      final d = defaults();
-      await saveAll(d);
-      return d;
-    }
+    final rows = await Fs.getAll(boxName);
+    if (rows.isEmpty) return defaults();
     final list = <WelcomeSlide>[];
-    for (final raw in _box.values) {
+    for (final r in rows) {
       try {
-        list.add(WelcomeSlide.fromMap(Map<String, dynamic>.from(raw as Map)));
+        list.add(WelcomeSlide.fromMap(Map<String, dynamic>.from(r)));
       } catch (_) {}
     }
-    list.sort((a, b) => a.id.compareTo(b.id));
-    if (list.isEmpty) return defaults();
-    return list;
+    return list.isEmpty ? defaults() : list;
   }
 
   static Future<void> saveAll(List<WelcomeSlide> slides) async {
-    await open();
-    await _box.clear();
-    for (final s in slides) {
-      await _box.add(s.toMap());
+    for (final r in await Fs.getAll(boxName)) {
+      final id = r['_docId']?.toString();
+      if (id != null) await Fs.delete(boxName, id);
     }
-    await _box.flush();
+    for (final s in slides) {
+      await Fs.add(boxName, s.toMap());
+    }
   }
 
-  /// Store raw bytes for a slide; returns imageKey to put on the slide.
   static Future<String> saveImageBytes(Uint8List bytes) async {
-    await open();
     final key = 'img_${DateTime.now().millisecondsSinceEpoch}';
-    await _images.put(key, bytes);
-    await _images.flush();
+    _imageCache[key] = bytes;
+    await Fs.set(imagesBoxName, key, {'base64': base64Encode(bytes)});
     return key;
   }
 
+  /// Sync read from memory cache (call prefetchImage first when possible).
   static Uint8List? getImageBytes(String? imageKey) {
     if (imageKey == null || imageKey.isEmpty) return null;
-    if (!Hive.isBoxOpen(imagesBoxName)) return null;
-    final raw = _images.get(imageKey);
-    if (raw is Uint8List) return raw;
-    if (raw is List) {
-      try {
-        return Uint8List.fromList(List<int>.from(raw));
-      } catch (_) {
-        return null;
-      }
+    return _imageCache[imageKey];
+  }
+
+  static Future<Uint8List?> prefetchImage(String? imageKey) async {
+    if (imageKey == null || imageKey.isEmpty) return null;
+    if (_imageCache.containsKey(imageKey)) return _imageCache[imageKey];
+    final raw = await Fs.getDoc(imagesBoxName, imageKey);
+    final b64 = raw?['base64']?.toString();
+    if (b64 == null || b64.isEmpty) return null;
+    try {
+      final bytes = base64Decode(b64);
+      _imageCache[imageKey] = bytes;
+      return bytes;
+    } catch (_) {
+      return null;
     }
-    return null;
   }
 
   static Future<void> deleteImageKey(String? imageKey) async {
     if (imageKey == null || imageKey.isEmpty) return;
-    await open();
-    await _images.delete(imageKey);
+    _imageCache.remove(imageKey);
+    await Fs.delete(imagesBoxName, imageKey);
   }
 
   static Future<WelcomeSlide> addSlide({
@@ -122,32 +113,18 @@ class WelcomeMediaStorage {
     String imageUrl = '',
     String imageKey = '',
   }) async {
-    await open();
-    final s = WelcomeSlide(
+    final slide = WelcomeSlide(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
-      imageUrl: imageUrl.trim(),
-      imageKey: imageKey.trim(),
-      caption: caption.trim(),
-      subtitle: subtitle.trim(),
+      caption: caption,
+      subtitle: subtitle,
+      imageUrl: imageUrl,
+      imageKey: imageKey,
     );
-    await _box.add(s.toMap());
-    await _box.flush();
-    return s;
+    await Fs.add(boxName, slide.toMap());
+    return slide;
   }
 
   static Future<void> deleteAt(int index) async {
-    await open();
-    if (index < 0 || index >= _box.length) return;
-    try {
-      final raw = _box.getAt(index);
-      if (raw is Map) {
-        final key = raw['imageKey']?.toString();
-        if (key != null && key.isNotEmpty) {
-          await _images.delete(key);
-        }
-      }
-    } catch (_) {}
-    await _box.deleteAt(index);
-    await _box.flush();
+    await Fs.deleteAt(boxName, index);
   }
 }

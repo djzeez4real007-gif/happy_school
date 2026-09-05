@@ -1,63 +1,37 @@
-import 'dart:convert';
-
-import 'package:shared_preferences/shared_preferences.dart';
-
+import '../database/fs.dart';
 import '../models/student_promotion.dart';
 
 class StudentPromotionStorage {
-  static const String storageKey = "student_promotions";
-
-  // ==========================================================
-  // GET ALL PROMOTION RECORDS
-  // ==========================================================
+  static const String boxName = 'student_promotions';
 
   static Future<List<StudentPromotion>> getPromotions() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final json = prefs.getString(storageKey);
-
-    if (json == null || json.isEmpty) {
-      return [];
+    final list = <StudentPromotion>[];
+    for (final e in await Fs.getAll(boxName)) {
+      try {
+        list.add(StudentPromotion.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {}
     }
-
-    final List<dynamic> data = jsonDecode(json);
-
-    return data
-        .map((e) => StudentPromotion.fromMap(Map<String, dynamic>.from(e)))
-        .toList();
+    return list;
   }
-
-  // ==========================================================
-  // SAVE
-  // ==========================================================
 
   static Future<void> savePromotions(List<StudentPromotion> promotions) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final json = jsonEncode(promotions.map((e) => e.toMap()).toList());
-
-    await prefs.setString(storageKey, json);
+    for (final r in await Fs.getAll(boxName)) {
+      final id = r['_docId']?.toString();
+      if (id != null) await Fs.delete(boxName, id);
+    }
+    for (final p in promotions) {
+      await Fs.add(boxName, p.toMap());
+    }
   }
-
-  // ==========================================================
-  // ADD PROMOTION RECORD
-  // ==========================================================
 
   static Future<void> addPromotion(StudentPromotion promotion) async {
-    final promotions = await getPromotions();
-
-    promotions.add(promotion);
-
-    await savePromotions(promotions);
+    await Fs.add(boxName, promotion.toMap());
   }
 
-  // ==========================================================
-  // CLEAR HISTORY
-  // ==========================================================
-
   static Future<void> clearPromotions() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.remove(storageKey);
+    for (final r in await Fs.getAll(boxName)) {
+      final id = r['_docId']?.toString();
+      if (id != null) await Fs.delete(boxName, id);
+    }
   }
 }

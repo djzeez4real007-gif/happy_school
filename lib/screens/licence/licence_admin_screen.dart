@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/licence_controller.dart';
@@ -107,6 +108,7 @@ class _LicenceAdminScreenState extends State<LicenceAdminScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('Licence & billing'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

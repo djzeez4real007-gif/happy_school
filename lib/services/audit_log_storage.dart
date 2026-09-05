@@ -1,22 +1,12 @@
-import 'package:hive/hive.dart';
-
+import '../database/fs.dart';
 import '../models/audit_log.dart';
 import 'auth_service.dart';
 
 class AuditLogStorage {
   static const String boxName = 'audit_logs';
-
   static const _ignoredActions = {
-    'login',
-    'logout',
-    'user_login',
-    'user_logout',
+    'login', 'logout', 'user_login', 'user_logout',
   };
-
-  static Future<Box> _box() async {
-    if (Hive.isBoxOpen(boxName)) return Hive.box(boxName);
-    return Hive.openBox(boxName);
-  }
 
   static Future<void> log({
     required String action,
@@ -26,11 +16,9 @@ class AuditLogStorage {
     String? session,
     String? term,
   }) async {
-    final a = action.trim().toLowerCase();
-    if (_ignoredActions.contains(a)) return;
-
+    if (_ignoredActions.contains(action.trim().toLowerCase())) return;
     final user = AuthService.currentUser;
-    final entry = AuditLog(
+    await Fs.add(boxName, AuditLog(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       action: action,
       module: module,
@@ -42,17 +30,19 @@ class AuditLogStorage {
       refId: refId,
       session: session,
       term: term,
-    );
-    final box = await _box();
-    await box.add(entry.toMap());
+    ).toMap());
   }
 
   static Future<List<AuditLog>> getAll() async {
-    final box = await _box();
-    final list = box.values
-        .map((e) => AuditLog.fromMap(Map<String, dynamic>.from(e as Map)))
-        .where((e) => !_ignoredActions.contains(e.action.trim().toLowerCase()))
-        .toList();
+    final list = <AuditLog>[];
+    for (final e in await Fs.getAll(boxName)) {
+      try {
+        final log = AuditLog.fromMap(Map<String, dynamic>.from(e));
+        if (!_ignoredActions.contains(log.action.trim().toLowerCase())) {
+          list.add(log);
+        }
+      } catch (_) {}
+    }
     list.sort((a, b) => b.timestamp.compareTo(a.timestamp));
     return list;
   }

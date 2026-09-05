@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/school_profile_controller.dart';
@@ -353,6 +354,7 @@ class _SchoolProfileScreenState extends State<SchoolProfileScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('School profile'),
         backgroundColor: primary,
         foregroundColor: Colors.white,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -99,6 +100,7 @@ class _StudentPortalAdminScreenState extends State<StudentPortalAdminScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('Student portal access'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../data/school_posts.dart';
@@ -174,6 +175,7 @@ class _NonTeachingStaffFormScreenState
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: Text(isEdit ? 'Edit staff' : 'Register staff'),
         backgroundColor: const Color(0xFF0F766E),
         foregroundColor: Colors.white,

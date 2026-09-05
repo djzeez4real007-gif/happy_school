@@ -1,236 +1,96 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import '../database/fs.dart';
 
 class TimetableSettingsStorage {
-  static const String boxName = "timetable_settings";
+  static const String boxName = 'timetable_settings';
+  static const String _doc = 'settings';
 
-  static const String _keyMondayThursdayPeriods = "mondayThursdayPeriods";
-  static const String _keyFridayPeriods = "fridayPeriods";
-  static const String _keyShortBreakEnabled = "shortBreakEnabled";
-  static const String _keyShortBreakAfterPeriod = "shortBreakAfterPeriod";
-  static const String _keyShortBreakDuration = "shortBreakDuration";
-  static const String _keyLongBreakEnabled = "longBreakEnabled";
-  static const String _keyLongBreakAfterPeriod = "longBreakAfterPeriod";
-  static const String _keyLongBreakDuration = "longBreakDuration";
+  static const _kMon = 'mondayThursdayPeriods';
+  static const _kFri = 'fridayPeriods';
+  static const _kShortEn = 'shortBreakEnabled';
+  static const _kShortAfter = 'shortBreakAfterPeriod';
+  static const _kShortDur = 'shortBreakDuration';
+  static const _kLongEn = 'longBreakEnabled';
+  static const _kLongAfter = 'longBreakAfterPeriod';
+  static const _kLongDur = 'longBreakDuration';
 
-  static Future<void> initialize() async {
-    if (!Hive.isBoxOpen(boxName)) {
-      await Hive.openBox(boxName);
+  static Future<Map<String, dynamic>> _data() async {
+    final raw = await Fs.getSingleton(boxName, _doc);
+    if (raw == null || raw.isEmpty) {
+      final seed = {
+        _kMon: _defaultMon(),
+        _kFri: _defaultFri(),
+        _kShortEn: true,
+        _kShortAfter: 2,
+        _kShortDur: 15,
+        _kLongEn: true,
+        _kLongAfter: 4,
+        _kLongDur: 30,
+      };
+      await Fs.setSingleton(boxName, _doc, seed);
+      return seed;
     }
-
-    final box = Hive.box(boxName);
-
-    if (box.get(_keyMondayThursdayPeriods) == null) {
-      await box.put(_keyMondayThursdayPeriods, _defaultMondayThursdayPeriods());
-    }
-
-    if (box.get(_keyFridayPeriods) == null) {
-      await box.put(_keyFridayPeriods, _defaultFridayPeriods());
-    }
-
-    if (box.get(_keyShortBreakEnabled) == null) {
-      await box.put(_keyShortBreakEnabled, true);
-    }
-
-    if (box.get(_keyShortBreakAfterPeriod) == null) {
-      await box.put(_keyShortBreakAfterPeriod, 2);
-    }
-
-    if (box.get(_keyShortBreakDuration) == null) {
-      await box.put(_keyShortBreakDuration, 15);
-    }
-
-    if (box.get(_keyLongBreakEnabled) == null) {
-      await box.put(_keyLongBreakEnabled, true);
-    }
-
-    if (box.get(_keyLongBreakAfterPeriod) == null) {
-      await box.put(_keyLongBreakAfterPeriod, 5);
-    }
-
-    if (box.get(_keyLongBreakDuration) == null) {
-      await box.put(_keyLongBreakDuration, 30);
-    }
+    return raw;
   }
 
-  static List<Map<String, dynamic>> _defaultMondayThursdayPeriods() {
-    return [
-      {"period": 1, "start": "8:00 AM", "end": "8:45 AM"},
-      {"period": 2, "start": "8:45 AM", "end": "9:30 AM"},
-      {"period": 3, "start": "9:30 AM", "end": "10:15 AM"},
-      {"period": 4, "start": "10:15 AM", "end": "11:00 AM"},
-      {"period": 5, "start": "11:00 AM", "end": "11:45 AM"},
-      {"period": 6, "start": "11:45 AM", "end": "12:30 PM"},
-      {"period": 7, "start": "12:30 PM", "end": "1:15 PM"},
-      {"period": 8, "start": "1:15 PM", "end": "2:00 PM"},
-    ];
-  }
+  static Future<void> initialize() async => _data();
 
-  static List<Map<String, dynamic>> _defaultFridayPeriods() {
-    return [
-      {"period": 1, "start": "8:00 AM", "end": "8:40 AM"},
-      {"period": 2, "start": "8:40 AM", "end": "9:20 AM"},
-      {"period": 3, "start": "9:20 AM", "end": "10:00 AM"},
-      {"period": 4, "start": "10:00 AM", "end": "10:40 AM"},
-      {"period": 5, "start": "10:40 AM", "end": "11:20 AM"},
-      {"period": 6, "start": "11:20 AM", "end": "12:00 PM"},
-      {"period": 7, "start": "12:00 PM", "end": "12:40 PM"},
-      {"period": 8, "start": "12:40 PM", "end": "1:20 PM"},
-    ];
-  }
+  static List<Map<String, dynamic>> _defaultMon() => [
+        {'name': 'Period 1', 'start': '08:00', 'end': '08:40'},
+        {'name': 'Period 2', 'start': '08:40', 'end': '09:20'},
+        {'name': 'Period 3', 'start': '09:20', 'end': '10:00'},
+        {'name': 'Period 4', 'start': '10:20', 'end': '11:00'},
+        {'name': 'Period 5', 'start': '11:00', 'end': '11:40'},
+        {'name': 'Period 6', 'start': '11:40', 'end': '12:20'},
+        {'name': 'Period 7', 'start': '13:00', 'end': '13:40'},
+        {'name': 'Period 8', 'start': '13:40', 'end': '14:20'},
+      ];
 
-  static List<Map<String, dynamic>> _safePeriods(dynamic value) {
-    if (value is! List) {
-      return _defaultMondayThursdayPeriods();
-    }
+  static List<Map<String, dynamic>> _defaultFri() => [
+        {'name': 'Period 1', 'start': '08:00', 'end': '08:40'},
+        {'name': 'Period 2', 'start': '08:40', 'end': '09:20'},
+        {'name': 'Period 3', 'start': '09:20', 'end': '10:00'},
+        {'name': 'Period 4', 'start': '10:20', 'end': '11:00'},
+        {'name': 'Period 5', 'start': '11:00', 'end': '11:40'},
+        {'name': 'Period 6', 'start': '11:40', 'end': '12:20'},
+      ];
 
+  static List<Map<String, dynamic>> _safePeriods(dynamic value, List<Map<String, dynamic>> fallback) {
+    if (value is! List) return fallback;
     final result = <Map<String, dynamic>>[];
-
-    for (var i = 0; i < value.length; i++) {
-      final item = value[i];
-
-      if (item is Map) {
-        final periodNumber = _safeInt(item["period"], i + 1);
-
-        final start = _safeString(item["start"], "");
-
-        final end = _safeString(item["end"], "");
-
-        result.add({"period": periodNumber, "start": start, "end": end});
-      }
-    }
-
-    if (result.isEmpty) {
-      return _defaultMondayThursdayPeriods();
-    }
-
-    return result;
-  }
-
-  static List<Map<String, dynamic>> _safeFridayPeriods(dynamic value) {
-    if (value is! List) {
-      return _defaultFridayPeriods();
-    }
-
-    final result = <Map<String, dynamic>>[];
-
-    for (var i = 0; i < value.length; i++) {
-      final item = value[i];
-
+    for (final item in value) {
       if (item is Map) {
         result.add({
-          "period": _safeInt(item["period"], i + 1),
-          "start": _safeString(item["start"], ""),
-          "end": _safeString(item["end"], ""),
+          'name': '${item['name'] ?? ''}',
+          'start': '${item['start'] ?? ''}',
+          'end': '${item['end'] ?? ''}',
         });
       }
     }
-
-    if (result.isEmpty) {
-      return _defaultFridayPeriods();
-    }
-
-    return result;
-  }
-
-  static int _safeInt(dynamic value, int fallback) {
-    if (value is int) {
-      return value;
-    }
-
-    if (value is num) {
-      return value.toInt();
-    }
-
-    if (value is String) {
-      return int.tryParse(value) ?? fallback;
-    }
-
-    return fallback;
-  }
-
-  static bool _safeBool(dynamic value, bool fallback) {
-    if (value is bool) {
-      return value;
-    }
-
-    if (value is String) {
-      return value.toLowerCase() == "true";
-    }
-
-    return fallback;
-  }
-
-  static String _safeString(dynamic value, String fallback) {
-    if (value is String) {
-      return value;
-    }
-
-    return fallback;
+    return result.isEmpty ? fallback : result;
   }
 
   static Future<List<Map<String, dynamic>>> getMondayThursdayPeriods() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safePeriods(box.get(_keyMondayThursdayPeriods));
+    final d = await _data();
+    return _safePeriods(d[_kMon], _defaultMon());
   }
 
   static Future<List<Map<String, dynamic>>> getFridayPeriods() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeFridayPeriods(box.get(_keyFridayPeriods));
+    final d = await _data();
+    return _safePeriods(d[_kFri], _defaultFri());
   }
 
-  static Future<bool> getShortBreakEnabled() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeBool(box.get(_keyShortBreakEnabled), true);
-  }
-
-  static Future<int> getShortBreakAfterPeriod() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeInt(box.get(_keyShortBreakAfterPeriod), 2);
-  }
-
-  static Future<int> getShortBreakDuration() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeInt(box.get(_keyShortBreakDuration), 15);
-  }
-
-  static Future<bool> getLongBreakEnabled() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeBool(box.get(_keyLongBreakEnabled), true);
-  }
-
-  static Future<int> getLongBreakAfterPeriod() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeInt(box.get(_keyLongBreakAfterPeriod), 5);
-  }
-
-  static Future<int> getLongBreakDuration() async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    return _safeInt(box.get(_keyLongBreakDuration), 30);
-  }
+  static Future<bool> getShortBreakEnabled() async =>
+      (await _data())[_kShortEn] == true;
+  static Future<int> getShortBreakAfterPeriod() async =>
+      int.tryParse('${(await _data())[_kShortAfter]}') ?? 2;
+  static Future<int> getShortBreakDuration() async =>
+      int.tryParse('${(await _data())[_kShortDur]}') ?? 15;
+  static Future<bool> getLongBreakEnabled() async =>
+      (await _data())[_kLongEn] == true;
+  static Future<int> getLongBreakAfterPeriod() async =>
+      int.tryParse('${(await _data())[_kLongAfter]}') ?? 4;
+  static Future<int> getLongBreakDuration() async =>
+      int.tryParse('${(await _data())[_kLongDur]}') ?? 30;
 
   static Future<void> saveSettings({
     required List<Map<String, dynamic>> mondayThursdayPeriods,
@@ -242,40 +102,28 @@ class TimetableSettingsStorage {
     required int longBreakAfterPeriod,
     required int longBreakDuration,
   }) async {
-    await initialize();
-
-    final box = Hive.box(boxName);
-
-    await box.put(_keyMondayThursdayPeriods, mondayThursdayPeriods);
-
-    await box.put(_keyFridayPeriods, fridayPeriods);
-
-    await box.put(_keyShortBreakEnabled, shortBreakEnabled);
-
-    await box.put(_keyShortBreakAfterPeriod, shortBreakAfterPeriod);
-
-    await box.put(_keyShortBreakDuration, shortBreakDuration);
-
-    await box.put(_keyLongBreakEnabled, longBreakEnabled);
-
-    await box.put(_keyLongBreakAfterPeriod, longBreakAfterPeriod);
-
-    await box.put(_keyLongBreakDuration, longBreakDuration);
+    await Fs.setSingleton(boxName, _doc, {
+      _kMon: mondayThursdayPeriods,
+      _kFri: fridayPeriods,
+      _kShortEn: shortBreakEnabled,
+      _kShortAfter: shortBreakAfterPeriod,
+      _kShortDur: shortBreakDuration,
+      _kLongEn: longBreakEnabled,
+      _kLongAfter: longBreakAfterPeriod,
+      _kLongDur: longBreakDuration,
+    });
   }
 
   static Future<void> resetToDefaults() async {
-    final box = Hive.box(boxName);
-
-    await box.put(_keyMondayThursdayPeriods, _defaultMondayThursdayPeriods());
-
-    await box.put(_keyFridayPeriods, _defaultFridayPeriods());
-
-    await box.put(_keyShortBreakEnabled, true);
-    await box.put(_keyShortBreakAfterPeriod, 2);
-    await box.put(_keyShortBreakDuration, 15);
-
-    await box.put(_keyLongBreakEnabled, true);
-    await box.put(_keyLongBreakAfterPeriod, 5);
-    await box.put(_keyLongBreakDuration, 30);
+    await Fs.setSingleton(boxName, _doc, {
+      _kMon: _defaultMon(),
+      _kFri: _defaultFri(),
+      _kShortEn: true,
+      _kShortAfter: 2,
+      _kShortDur: 15,
+      _kLongEn: true,
+      _kLongAfter: 4,
+      _kLongDur: 30,
+    });
   }
 }

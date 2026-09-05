@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import '../../core/school_profile_controller.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:open_filex/open_filex.dart';
@@ -83,6 +84,7 @@ class ReportCardScreen extends StatelessWidget {
     return Scaffold(
       backgroundColor: background,
       appBar: AppBar(
+        leading: AppBack.leading(context),
         backgroundColor: background,
         elevation: 0,
         foregroundColor: Colors.grey.shade800,

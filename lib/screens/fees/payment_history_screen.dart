@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../models/student_fee_payment.dart';
 import '../../services/student_fee_payment_storage.dart';
@@ -176,7 +177,8 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Payment History")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("Payment History")),
       body: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

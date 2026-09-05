@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/school_class_levels.dart';
 
 import '../../services/audit_log_storage.dart';
 import '../../core/theme/app_colors.dart';
@@ -60,30 +61,14 @@ class _StudentPromotionScreenState extends State<StudentPromotionScreen> {
   // PROMOTION PATHS
   // ============================================================
 
-  static const List<_PromotionPath> promotionPaths = [
-    _PromotionPath(
-      label: 'JSS1 → JSS2',
-      sourceClass: 'JSS1',
-      targetClass: 'JSS2',
-    ),
-    _PromotionPath(
-      label: 'JSS2 → JSS3',
-      sourceClass: 'JSS2',
-      targetClass: 'JSS3',
-    ),
-    _PromotionPath(
-      label: 'JSS3 → SS1',
-      sourceClass: 'JSS3',
-      targetClass: 'SS1',
-    ),
-    _PromotionPath(label: 'SS1 → SS2', sourceClass: 'SS1', targetClass: 'SS2'),
-    _PromotionPath(label: 'SS2 → SS3', sourceClass: 'SS2', targetClass: 'SS3'),
-    _PromotionPath(
-      label: 'SS3 → Graduated',
-      sourceClass: 'SS3',
-      targetClass: 'Graduated',
-      graduated: true,
-    ),
+  static final List<_PromotionPath> promotionPaths = [
+    for (final p in SchoolClassLevels.promotionPaths)
+      _PromotionPath(
+        label: p.label,
+        sourceClass: p.source,
+        targetClass: p.target,
+        graduated: p.graduated,
+      ),
   ];
 
   // ============================================================

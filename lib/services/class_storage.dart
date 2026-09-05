@@ -1,48 +1,35 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import '../database/fs.dart';
 import '../models/school_class.dart';
 
 class ClassStorage {
   static const String boxName = 'classes';
 
-  /// Must match HiveDatabase: openBox<Map>('classes')
-  static Box<Map> _box() => Hive.box<Map>(boxName);
-
-  static SchoolClass _from(Map raw) {
-    return SchoolClass.fromMap(Map<String, dynamic>.from(raw));
-  }
-
   static Future<void> addClass(SchoolClass schoolClass) async {
-    final box = _box();
     final target = schoolClass.fullClassName.trim().toLowerCase();
-
-    for (int i = 0; i < box.length; i++) {
-      final raw = box.getAt(i);
-      if (raw == null) continue;
-      final item = _from(raw);
+    final rows = await Fs.getAll(boxName);
+    for (final raw in rows) {
+      final item = SchoolClass.fromMap(Map<String, dynamic>.from(raw));
       if (item.fullClassName.trim().toLowerCase() == target) {
-        await box.putAt(i, schoolClass.toMap());
-        await box.flush();
-        return;
+        final id = raw['_docId']?.toString();
+        if (id != null) {
+          await Fs.set(boxName, id, schoolClass.toMap());
+          return;
+        }
       }
     }
-
-    await box.add(schoolClass.toMap());
-    await box.flush();
+    await Fs.add(boxName, schoolClass.toMap());
   }
 
   static Future<List<SchoolClass>> getClasses() async {
-    final box = _box();
     final list = <SchoolClass>[];
-    for (final raw in box.values) {
+    for (final raw in await Fs.getAll(boxName)) {
       try {
-        final c = _from(raw);
+        final c = SchoolClass.fromMap(Map<String, dynamic>.from(raw));
         if (c.fullClassName.trim().isNotEmpty) list.add(c);
       } catch (_) {}
     }
-    list.sort(
-      (a, b) =>
-          a.fullClassName.toLowerCase().compareTo(b.fullClassName.toLowerCase()),
-    );
+    list.sort((a, b) =>
+        a.fullClassName.toLowerCase().compareTo(b.fullClassName.toLowerCase()));
     return list;
   }
 
@@ -54,17 +41,8 @@ class ClassStorage {
     return null;
   }
 
-  static Future<void> deleteClass(int index) async {
-    await _box().deleteAt(index);
-    await _box().flush();
-  }
-
-  static Future<void> updateClass(int index, SchoolClass schoolClass) async {
-    await _box().putAt(index, schoolClass.toMap());
-    await _box().flush();
-  }
-
-  static Future<int> getTotalClasses() async {
-    return _box().length;
-  }
+  static Future<void> deleteClass(int index) async => Fs.deleteAt(boxName, index);
+  static Future<void> updateClass(int index, SchoolClass schoolClass) async =>
+      Fs.putAt(boxName, index, schoolClass.toMap());
+  static Future<int> getTotalClasses() async => Fs.count(boxName);
 }

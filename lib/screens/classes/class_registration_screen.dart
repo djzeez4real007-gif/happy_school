@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/theme/app_colors.dart';
+import '../../data/school_class_levels.dart';
 import '../../core/widgets/premium_feedback.dart';
 import '../../core/widgets/premium_form.dart';
 import '../../models/school_class.dart';
@@ -23,7 +25,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
   final _formKey = GlobalKey<FormState>();
   final classTeacherController = TextEditingController();
 
-  String className = 'JSS1';
+  String className = 'Primary 1';
   String arm = 'A';
   List<Teacher> teachers = [];
   bool saving = false;
@@ -92,6 +94,7 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: Text(isEdit ? 'Edit Class' : 'Class Registration'),
         elevation: 0,
       ),
@@ -116,13 +119,9 @@ class _ClassRegistrationScreenState extends State<ClassRegistrationScreen> {
                     labelText: 'Class',
                     prefixIcon: Icon(Icons.school_rounded),
                   ),
-                  items: const [
-                    DropdownMenuItem(value: 'JSS1', child: Text('JSS1')),
-                    DropdownMenuItem(value: 'JSS2', child: Text('JSS2')),
-                    DropdownMenuItem(value: 'JSS3', child: Text('JSS3')),
-                    DropdownMenuItem(value: 'SS1', child: Text('SS1')),
-                    DropdownMenuItem(value: 'SS2', child: Text('SS2')),
-                    DropdownMenuItem(value: 'SS3', child: Text('SS3')),
+                  items: [
+                    for (final c in SchoolClassLevels.all)
+                      DropdownMenuItem(value: c, child: Text(c)),
                   ],
                   onChanged: (v) {
                     if (v != null) setState(() => className = v);

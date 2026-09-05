@@ -1,22 +1,14 @@
-import 'package:hive_flutter/hive_flutter.dart';
-
+import '../database/fs.dart';
 import '../models/pricing_package.dart';
 
 class PricingStorage {
   static const boxName = 'pricing_packages';
   static const _key = 'packages';
 
-  static Future<void> open() async {
-    if (!Hive.isBoxOpen(boxName)) {
-      await Hive.openBox(boxName);
-    }
-  }
-
   static Future<List<PricingPackage>> load() async {
-    await open();
-    final raw = Hive.box(boxName).get(_key);
-    if (raw is List && raw.isNotEmpty) {
-      return raw
+    final raw = await Fs.getSingleton(boxName, _key);
+    if (raw != null && raw['items'] is List) {
+      return (raw['items'] as List)
           .whereType<Map>()
           .map((m) => PricingPackage.fromMap(Map<String, dynamic>.from(m)))
           .toList();
@@ -27,10 +19,8 @@ class PricingStorage {
   }
 
   static Future<void> save(List<PricingPackage> packages) async {
-    await open();
-    await Hive.box(boxName).put(
-      _key,
-      packages.map((p) => p.toMap()).toList(),
-    );
+    await Fs.setSingleton(boxName, _key, {
+      'items': packages.map((p) => p.toMap()).toList(),
+    });
   }
 }

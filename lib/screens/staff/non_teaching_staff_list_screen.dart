@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import '../../models/staff_member.dart';
 import '../../services/staff_storage.dart';
 import 'non_teaching_staff_form_screen.dart';
+import '../../models/teacher.dart';
+import '../teachers/staff_id_card_preview_screen.dart';
 
 class NonTeachingStaffListScreen extends StatefulWidget {
   const NonTeachingStaffListScreen({super.key});
@@ -18,6 +20,31 @@ class _NonTeachingStaffListScreenState
     extends State<NonTeachingStaffListScreen> {
   List<StaffMember> staff = [];
   String query = '';
+
+  /// Map non-teaching staff into Teacher shape for the shared ID card UI.
+  Teacher _asTeacher(StaffMember s) {
+    final parts = s.fullName.trim().split(RegExp(r'\s+'));
+    final surname = parts.isNotEmpty ? parts.first : s.fullName;
+    final first = parts.length > 1 ? parts[1] : '';
+    final middle = parts.length > 2 ? parts.sublist(2).join(' ') : '';
+    return Teacher(
+      staffId: s.id.isNotEmpty ? s.id : 'NTS',
+      surname: surname,
+      firstName: first,
+      middleName: middle,
+      gender: s.gender,
+      phone: s.phone,
+      email: s.email,
+      address: s.address,
+      qualification: s.qualification.isNotEmpty
+          ? s.qualification
+          : (s.otherQualifications.isNotEmpty ? s.otherQualifications : '—'),
+      department: s.post.isNotEmpty ? s.post : 'Non-Teaching',
+      passport: s.passport,
+      employmentType: 'Full-time',
+    );
+  }
+
   bool loading = true;
 
   @override
@@ -191,6 +218,22 @@ class _NonTeachingStaffListScreenState
                                     color: s.active
                                         ? const Color(0xFF059669)
                                         : Colors.grey,
+                                  ),
+                                  IconButton(
+                                    tooltip: 'ID card',
+                                    icon: const Icon(Icons.badge_outlined,
+                                        color: Color(0xFF0F766E)),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              StaffIdCardPreviewScreen(
+                                            teacher: _asTeacher(s),
+                                          ),
+                                        ),
+                                      );
+                                    },
                                   ),
                                   IconButton(
                                     tooltip: 'Delete',

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../models/result.dart';
@@ -156,6 +157,7 @@ class _GenerateTranscriptScreenState extends State<GenerateTranscriptScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('Academic Transcript'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

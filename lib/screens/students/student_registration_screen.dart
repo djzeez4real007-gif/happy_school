@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/widgets/premium_feedback.dart';
 import '../../core/theme/app_colors.dart';
@@ -376,6 +377,7 @@ class _StudentRegistrationScreenState extends State<StudentRegistrationScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text("Student Registration"),
         centerTitle: true,
         actions: [

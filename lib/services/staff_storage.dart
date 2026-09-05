@@ -1,45 +1,51 @@
-import 'package:hive_flutter/hive_flutter.dart';
 import 'package:uuid/uuid.dart';
 
+import '../database/fs.dart';
 import '../models/staff_member.dart';
 
 class StaffStorage {
   static const boxName = 'non_teaching_staff';
-
-  static Box get _box => Hive.box(boxName);
+  static List<StaffMember> _cache = [];
 
   static Future<void> open() async {
-    if (!Hive.isBoxOpen(boxName)) {
-      await Hive.openBox(boxName);
+    _cache = await _load();
+  }
+
+  static Future<List<StaffMember>> _load() async {
+    final list = <StaffMember>[];
+    for (final e in await Fs.getAll(boxName)) {
+      try {
+        list.add(StaffMember.fromMap(Map<String, dynamic>.from(e)));
+      } catch (_) {}
     }
+    list.sort((a, b) => a.fullName.compareTo(b.fullName));
+    return list;
   }
 
   static List<StaffMember> getAll({bool activeOnly = false}) {
-    final list = _box.values
-        .map((e) => StaffMember.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList();
-    list.sort((a, b) => a.fullName.compareTo(b.fullName));
+    final list = List<StaffMember>.from(_cache);
     if (activeOnly) return list.where((s) => s.active).toList();
     return list;
   }
 
   static Future<void> add(StaffMember s) async {
-    await _box.add(s.toMap());
+    await Fs.add(boxName, s.toMap());
+    _cache = await _load();
   }
 
   static Future<void> update(int index, StaffMember s) async {
-    await _box.putAt(index, s.toMap());
+    await Fs.putAt(boxName, index, s.toMap());
+    _cache = await _load();
   }
 
   static Future<void> deleteAt(int index) async {
-    await _box.deleteAt(index);
+    await Fs.deleteAt(boxName, index);
+    _cache = await _load();
   }
 
   static int indexOfId(String id) {
-    final values = _box.values.toList();
-    for (var i = 0; i < values.length; i++) {
-      final m = Map<String, dynamic>.from(values[i] as Map);
-      if (m['id']?.toString() == id) return i;
+    for (var i = 0; i < _cache.length; i++) {
+      if (_cache[i].id == id) return i;
     }
     return -1;
   }

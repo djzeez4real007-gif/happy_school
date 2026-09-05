@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import '../../core/theme/app_colors.dart';
 
 import '../../models/student.dart';
@@ -163,6 +164,7 @@ class _StudentDetailsScreenState extends State<StudentDetailsScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text("Student Profile"),
         actions: [
           IconButton(

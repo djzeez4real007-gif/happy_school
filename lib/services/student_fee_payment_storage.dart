@@ -1,4 +1,4 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import '../database/fs.dart';
 
 import '../models/student_fee_payment.dart';
 
@@ -9,18 +9,18 @@ class StudentFeePaymentStorage {
   // SAVE PAYMENT
   //==========================
   static Future<void> savePayment(StudentFeePayment payment) async {
-    final box = Hive.box<Map>(boxName);
+    final rows = await Fs.getAll(boxName);
 
-    await box.add(payment.toMap());
+    await Fs.add(boxName, payment.toMap());
   }
 
   //==========================
   // GET ALL PAYMENTS
   //==========================
   static Future<List<StudentFeePayment>> getPayments() async {
-    final box = Hive.box<Map>(boxName);
+    final rows = await Fs.getAll(boxName);
 
-    return box.values
+    return rows
         .map((e) => StudentFeePayment.fromMap(Map<String, dynamic>.from(e)))
         .toList();
   }
@@ -29,9 +29,9 @@ class StudentFeePaymentStorage {
   // DELETE PAYMENT
   //==========================
   static Future<void> deletePayment(int index) async {
-    final box = Hive.box<Map>(boxName);
+    final rows = await Fs.getAll(boxName);
 
-    await box.deleteAt(index);
+    await Fs.deleteAt(boxName, index);
   }
 
   //==========================
@@ -41,9 +41,9 @@ class StudentFeePaymentStorage {
     int index,
     StudentFeePayment payment,
   ) async {
-    final box = Hive.box<Map>(boxName);
+    final rows = await Fs.getAll(boxName);
 
-    await box.putAt(index, payment.toMap());
+    await Fs.putAt(boxName, index, payment.toMap());
   }
 
   //==========================
@@ -128,9 +128,9 @@ class StudentFeePaymentStorage {
   // GENERATE RECEIPT NUMBER
   //==========================
   static Future<String> generateReceiptNumber() async {
-    final box = Hive.box<Map>(boxName);
+    final rows = await Fs.getAll(boxName);
 
-    final next = box.length + 1;
+    final next = (await Fs.count(boxName)) + 1;
 
     return "RCP${next.toString().padLeft(6, '0')}";
   }

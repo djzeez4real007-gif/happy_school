@@ -1,4 +1,4 @@
-import 'package:hive_flutter/hive_flutter.dart';
+import '../database/fs.dart';
 
 import '../models/school_fee.dart';
 
@@ -11,20 +11,20 @@ class SchoolFeeStorage {
   static String _normText(String value) => value.trim().toLowerCase();
 
   static Future<void> saveFee(SchoolFee fee) async {
-    final box = Hive.box<Map>(boxName);
+    final rows = await Fs.getAll(boxName);
 
-    for (int i = 0; i < box.length; i++) {
-      final item = SchoolFee.fromMap(Map<String, dynamic>.from(box.getAt(i)!));
+    for (int i = 0; i < rows.length; i++) {
+      final item = SchoolFee.fromMap(Map<String, dynamic>.from(rows[i]));
 
       if (_normClass(item.className) == _normClass(fee.className) &&
           _normText(item.session) == _normText(fee.session) &&
           _normText(item.term) == _normText(fee.term)) {
-        await box.putAt(i, fee.toMap());
+        await Fs.putAt(boxName, i, fee.toMap());
         return;
       }
     }
 
-    await box.add(fee.toMap());
+    await Fs.add(boxName, fee.toMap());
   }
 
   /// Save the same fee amounts for every term in the session.
@@ -49,8 +49,8 @@ class SchoolFeeStorage {
   }
 
   static Future<List<SchoolFee>> getFees() async {
-    final box = Hive.box<Map>(boxName);
-    final list = box.values
+    final rows = await Fs.getAll(boxName);
+    final list = rows
         .map((e) => SchoolFee.fromMap(Map<String, dynamic>.from(e)))
         .toList();
     list.sort((a, b) {
@@ -103,12 +103,12 @@ class SchoolFeeStorage {
   }
 
   static Future<void> deleteFee(int index) async {
-    final box = Hive.box<Map>(boxName);
-    await box.deleteAt(index);
+    final rows = await Fs.getAll(boxName);
+    await Fs.deleteAt(boxName, index);
   }
 
   static Future<void> updateFee(int index, SchoolFee fee) async {
-    final box = Hive.box<Map>(boxName);
-    await box.putAt(index, fee.toMap());
+    final rows = await Fs.getAll(boxName);
+    await Fs.putAt(boxName, index, fee.toMap());
   }
 }

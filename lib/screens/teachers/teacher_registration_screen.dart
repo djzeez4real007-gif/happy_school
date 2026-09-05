@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import 'package:image_picker/image_picker.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -149,6 +150,7 @@ class _TeacherRegistrationScreenState extends State<TeacherRegistrationScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: Text(isEdit ? 'Edit Teacher' : 'Teacher Registration'),
         elevation: 0,
       ),

@@ -1,82 +1,59 @@
-// lib/services/attendance_storage.dart
-
-import 'dart:convert';
-
-import 'package:shared_preferences/shared_preferences.dart';
-
+import '../database/fs.dart';
 import '../models/attendance.dart';
 
 class AttendanceStorage {
-  static const String _key = "attendance_records";
+  static const String boxName = 'attendance';
 
   static Future<List<Attendance>> getAttendance() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final data = prefs.getString(_key);
-
-    if (data == null || data.isEmpty) {
-      return [];
+    final list = <Attendance>[];
+    for (final e in await Fs.getAll(boxName)) {
+      try {
+        list.add(Attendance.fromJson(Map<String, dynamic>.from(e)));
+      } catch (_) {}
     }
-
-    try {
-      final List<dynamic> decoded = jsonDecode(data);
-
-      return decoded
-          .map((item) => Attendance.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-    } catch (_) {
-      return [];
-    }
+    return list;
   }
 
-  static Future<void> _saveAll(List<Attendance> attendance) async {
-    final prefs = await SharedPreferences.getInstance();
-
-    final data = attendance.map((e) => e.toJson()).toList();
-
-    await prefs.setString(_key, jsonEncode(data));
+  static Future<void> _replaceAll(List<Attendance> attendance) async {
+    for (final r in await Fs.getAll(boxName)) {
+      final id = r['_docId']?.toString();
+      if (id != null) await Fs.delete(boxName, id);
+    }
+    for (final a in attendance) {
+      await Fs.add(boxName, a.toJson());
+    }
   }
 
   static Future<void> saveAttendance(Attendance attendance) async {
     final records = await getAttendance();
-
-    final existingIndex = records.indexWhere(
-      (item) =>
-          item.admissionNo == attendance.admissionNo &&
-          item.date == attendance.date &&
-          item.session == attendance.session &&
-          item.term == attendance.term,
-    );
-
+    final existingIndex = records.indexWhere((item) =>
+        item.admissionNo == attendance.admissionNo &&
+        item.date == attendance.date &&
+        item.session == attendance.session &&
+        item.term == attendance.term);
     if (existingIndex >= 0) {
       records[existingIndex] = attendance;
     } else {
       records.add(attendance);
     }
-
-    await _saveAll(records);
+    await _replaceAll(records);
   }
 
   static Future<void> saveMany(List<Attendance> attendance) async {
     final records = await getAttendance();
-
     for (final item in attendance) {
-      final existingIndex = records.indexWhere(
-        (record) =>
-            record.admissionNo == item.admissionNo &&
-            record.date == item.date &&
-            record.session == item.session &&
-            record.term == item.term,
-      );
-
+      final existingIndex = records.indexWhere((record) =>
+          record.admissionNo == item.admissionNo &&
+          record.date == item.date &&
+          record.session == item.session &&
+          record.term == item.term);
       if (existingIndex >= 0) {
         records[existingIndex] = item;
       } else {
         records.add(item);
       }
     }
-
-    await _saveAll(records);
+    await _replaceAll(records);
   }
 
   static Future<List<Attendance>> getByClassAndDate({
@@ -86,34 +63,37 @@ class AttendanceStorage {
     required String term,
   }) async {
     final records = await getAttendance();
-
-    return records.where((item) {
-      return item.className == className &&
-          item.date == date &&
-          item.session == session &&
-          item.term == term;
-    }).toList();
+    return records
+        .where((item) =>
+            item.className == className &&
+            item.date == date &&
+            item.session == session &&
+            item.term == term)
+        .toList();
   }
 
-  static Future<List<Attendance>> getStudentAttendance(
-    String admissionNo,
-  ) async {
-    final records = await getAttendance();
-
-    return records.where((item) => item.admissionNo == admissionNo).toList();
+  static Future<List<Attendance>> getStudentAttendance(String admissionNo) async {
+    return (await getAttendance())
+        .where((item) => item.admissionNo == admissionNo)
+        .toList();
   }
 
   static Future<void> deleteAttendance(String id) async {
-    final records = await getAttendance();
-
-    records.removeWhere((item) => item.id == id);
-
-    await _saveAll(records);
+    for (final r in await Fs.getAll(boxName)) {
+      try {
+        final a = Attendance.fromJson(Map<String, dynamic>.from(r));
+        if (a.id == id) {
+          final docId = r['_docId']?.toString();
+          if (docId != null) await Fs.delete(boxName, docId);
+        }
+      } catch (_) {}
+    }
   }
 
   static Future<void> clearAll() async {
-    final prefs = await SharedPreferences.getInstance();
-
-    await prefs.remove(_key);
+    for (final r in await Fs.getAll(boxName)) {
+      final id = r['_docId']?.toString();
+      if (id != null) await Fs.delete(boxName, id);
+    }
   }
 }

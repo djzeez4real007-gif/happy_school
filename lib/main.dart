@@ -4,12 +4,12 @@ import 'app.dart';
 import 'core/licence_controller.dart';
 import 'core/school_profile_controller.dart';
 import 'core/theme/theme_controller.dart';
-import 'database/hive_database.dart';
+import 'database/cloud_database.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  await HiveDatabase.init();
+  await CloudDatabase.init();
   await ThemeController.instance.load();
   await SchoolProfileController.instance.load();
   await LicenceController.instance.load();

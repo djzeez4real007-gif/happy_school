@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/licence_controller.dart';
 import '../../core/theme/app_colors.dart';
@@ -110,6 +111,7 @@ class _PricingEditorScreenState extends State<PricingEditorScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('Edit plans & prices'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

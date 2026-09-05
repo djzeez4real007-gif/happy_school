@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import '../../core/school_profile_controller.dart';
 import '../../core/theme/app_colors.dart';
 import 'package:image_picker/image_picker.dart';
@@ -314,6 +315,7 @@ class _MediaSettingsScreenState extends State<MediaSettingsScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFFF1F5F9),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: const Text('Media settings'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,

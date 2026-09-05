@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/theme/app_colors.dart';
@@ -87,6 +88,7 @@ class _AnnouncementFormScreenState extends State<AnnouncementFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: Text(isEdit ? 'Edit Announcement' : 'New Announcement'),
         elevation: 0,
       ),

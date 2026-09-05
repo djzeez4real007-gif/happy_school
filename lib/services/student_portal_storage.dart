@@ -1,7 +1,6 @@
 import 'dart:math';
 
-import 'package:hive_flutter/hive_flutter.dart';
-
+import '../database/fs.dart';
 import 'auth_service.dart';
 
 class StudentPortalAccount {
@@ -35,21 +34,19 @@ class StudentPortalAccount {
 class StudentPortalStorage {
   static const boxName = 'student_portal';
 
-  static Future<void> open() async {
-    if (!Hive.isBoxOpen(boxName)) {
-      await Hive.openBox(boxName);
-    }
+  static String generatePassword() {
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+    final r = Random.secure();
+    return List.generate(8, (_) => chars[r.nextInt(chars.length)]).join();
   }
 
-  static Box get _box => Hive.box(boxName);
-
   static Future<StudentPortalAccount?> getByAdmission(String admissionNo) async {
-    await open();
     final target = admissionNo.trim().toLowerCase();
-    for (final raw in _box.values) {
-      if (raw is! Map) continue;
-      final a = StudentPortalAccount.fromMap(Map<String, dynamic>.from(raw));
-      if (a.admissionNo.trim().toLowerCase() == target) return a;
+    for (final raw in await Fs.getAll(boxName)) {
+      try {
+        final a = StudentPortalAccount.fromMap(Map<String, dynamic>.from(raw));
+        if (a.admissionNo.trim().toLowerCase() == target) return a;
+      } catch (_) {}
     }
     return null;
   }
@@ -58,13 +55,11 @@ class StudentPortalStorage {
     return (await getByAdmission(admissionNo)) != null;
   }
 
-  /// Creates or updates password. Returns the plain password shown once.
   static Future<String> setPassword({
     required String admissionNo,
     required String fullName,
     String? plainPassword,
   }) async {
-    await open();
     final plain = (plainPassword == null || plainPassword.trim().isEmpty)
         ? generatePassword()
         : plainPassword.trim();
@@ -76,47 +71,21 @@ class StudentPortalStorage {
       fullName: fullName.trim(),
     );
 
-    for (int i = 0; i < _box.length; i++) {
-      final raw = _box.getAt(i);
-      if (raw is! Map) continue;
-      final existing =
-          StudentPortalAccount.fromMap(Map<String, dynamic>.from(raw));
-      if (existing.admissionNo.trim().toLowerCase() ==
-          admissionNo.trim().toLowerCase()) {
-        await _box.putAt(i, account.toMap());
-        await _box.flush();
-        return plain;
-      }
+    final rows = await Fs.getAll(boxName);
+    final target = admissionNo.trim().toLowerCase();
+    for (final raw in rows) {
+      try {
+        final a = StudentPortalAccount.fromMap(Map<String, dynamic>.from(raw));
+        if (a.admissionNo.trim().toLowerCase() == target) {
+          final id = raw['_docId']?.toString();
+          if (id != null) {
+            await Fs.set(boxName, id, account.toMap());
+            return plain;
+          }
+        }
+      } catch (_) {}
     }
-    await _box.add(account.toMap());
-    await _box.flush();
+    await Fs.add(boxName, account.toMap());
     return plain;
-  }
-
-  static Future<void> setActive(String admissionNo, bool active) async {
-    await open();
-    for (int i = 0; i < _box.length; i++) {
-      final raw = _box.getAt(i);
-      if (raw is! Map) continue;
-      final existing =
-          StudentPortalAccount.fromMap(Map<String, dynamic>.from(raw));
-      if (existing.admissionNo.trim().toLowerCase() ==
-          admissionNo.trim().toLowerCase()) {
-        await _box.putAt(
-          i,
-          existing
-              .toMap()
-            ..['isActive'] = active,
-        );
-        await _box.flush();
-        return;
-      }
-    }
-  }
-
-  static String generatePassword({int length = 8}) {
-    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
-    final r = Random.secure();
-    return List.generate(length, (_) => chars[r.nextInt(chars.length)]).join();
   }
 }

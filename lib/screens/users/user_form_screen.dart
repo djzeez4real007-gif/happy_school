@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/widgets/premium_feedback.dart';
 import '../../core/widgets/premium_form.dart';
@@ -144,6 +145,7 @@ class _UserFormScreenState extends State<UserFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
       appBar: AppBar(
+        leading: AppBack.leading(context),
         title: Text(isEdit ? 'Edit User' : 'Add User'),
       ),
       body: Form(

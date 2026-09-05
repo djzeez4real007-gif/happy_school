@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../models/report_card.dart';
 import '../../services/report_card_storage.dart';
@@ -41,7 +42,8 @@ class _ReportCardListScreenState extends State<ReportCardListScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text("Report Cards (${reportCards.length})")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: Text("Report Cards (${reportCards.length})")),
 
       body: reportCards.isEmpty
           ? const Center(

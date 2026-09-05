@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 import '../../core/theme/app_colors.dart';
 
 import '../../models/result.dart';
@@ -1390,6 +1391,7 @@ class _ResultEntryScreenState extends State<ResultEntryScreen> {
       backgroundColor: AppColors.scaffold(context),
 
       appBar: AppBar(
+        leading: AppBack.leading(context),
         backgroundColor: AppColors.primary,
         elevation: 0,
         foregroundColor: Colors.white,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_colors.dart';
 import '../../models/teacher.dart';
 import '../../services/teacher_storage.dart';
+import 'staff_id_card_preview_screen.dart';
 import 'teacher_registration_screen.dart';
 
 class TeacherListScreen extends StatefulWidget {
@@ -14,6 +15,7 @@ class TeacherListScreen extends StatefulWidget {
 
 class _TeacherListScreenState extends State<TeacherListScreen> {
   List<Teacher> teachers = [];
+  Map<String, int> staffIndex = {};
   bool loading = true;
   String query = '';
 
@@ -26,10 +28,16 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
   Future<void> _load() async {
     setState(() => loading = true);
     final list = await TeacherStorage.getTeachers();
-    list.sort((a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()));
+    final idxMap = <String, int>{};
+    for (int i = 0; i < list.length; i++) {
+      idxMap[list[i].staffId.trim().toLowerCase()] = i;
+    }
+    list.sort(
+        (a, b) => a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase()));
     if (!mounted) return;
     setState(() {
       teachers = list;
+      staffIndex = idxMap;
       loading = false;
     });
   }
@@ -40,19 +48,22 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
     return teachers
         .where((t) =>
             t.fullName.toLowerCase().contains(q) ||
+            t.staffId.toLowerCase().contains(q) ||
             t.phone.contains(q) ||
             t.department.toLowerCase().contains(q))
         .toList();
   }
 
-  Future<void> _delete(Teacher t, int index) async {
+  Future<void> _delete(Teacher t) async {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         title: const Text('Delete teacher'),
         content: Text('Delete ${t.fullName}?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancel')),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
@@ -61,7 +72,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
       ),
     );
     if (ok == true) {
-      await TeacherStorage.deleteTeacher(index);
+      await TeacherStorage.deleteTeacherByStaffId(t.staffId);
       await _load();
     }
   }
@@ -80,7 +91,8 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
         onPressed: () async {
           await Navigator.push(
             context,
-            MaterialPageRoute(builder: (_) => const TeacherRegistrationScreen()),
+            MaterialPageRoute(
+                builder: (_) => const TeacherRegistrationScreen()),
           );
           await _load();
         },
@@ -114,25 +126,51 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                         itemCount: list.length,
                         itemBuilder: (ctx, i) {
                           final t = list[i];
-                          final realIndex = teachers.indexWhere(
-                            (x) => x.fullName == t.fullName && x.phone == t.phone,
-                          );
+                          // Always resolve Hive index by unique staffId
+                          final hiveIndex = staffIndex[t.staffId.trim().toLowerCase()] ?? -1;
                           return Card(
                             margin: const EdgeInsets.only(bottom: 8),
                             child: ListTile(
-                              title: Text(t.fullName, style: const TextStyle(fontWeight: FontWeight.w800)),
+                              title: Text(
+                                t.fullName,
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.w800),
+                              ),
                               subtitle: Text(
                                 [
+                                  t.staffId,
                                   if (t.department.isNotEmpty) t.department,
-                                  if (t.employmentType.isNotEmpty) t.employmentType,
+                                  if (t.employmentType.isNotEmpty)
+                                    t.employmentType,
                                   t.phone,
-                                ].where((e) => e.toString().trim().isNotEmpty).join(' · '),
+                                ]
+                                    .where((e) => e.toString().trim().isNotEmpty)
+                                    .join(' · '),
                               ),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete_outline, color: Colors.red),
-                                onPressed: realIndex >= 0
-                                    ? () => _delete(t, realIndex)
-                                    : null,
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    tooltip: 'ID card',
+                                    icon: Icon(Icons.badge_outlined,
+                                        color: AppColors.primary),
+                                    onPressed: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) =>
+                                              StaffIdCardPreviewScreen(
+                                                  teacher: t),
+                                        ),
+                                      );
+                                    },
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_outline,
+                                        color: Colors.red),
+                                    onPressed: () => _delete(t),
+                                  ),
+                                ],
                               ),
                               onTap: () async {
                                 await Navigator.push(
@@ -140,7 +178,8 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                                   MaterialPageRoute(
                                     builder: (_) => TeacherRegistrationScreen(
                                       teacher: t,
-                                      index: realIndex >= 0 ? realIndex : null,
+                                      index:
+                                          hiveIndex >= 0 ? hiveIndex : null,
                                     ),
                                   ),
                                 );
@@ -150,7 +189,7 @@ class _TeacherListScreenState extends State<TeacherListScreen> {
                           );
                         },
                       ),
-                  ),
+          ),
         ],
       ),
     );

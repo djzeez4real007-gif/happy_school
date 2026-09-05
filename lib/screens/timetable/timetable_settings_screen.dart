@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../services/timetable_settings_storage.dart';
 
@@ -310,13 +311,15 @@ class _TimetableSettingsScreenState extends State<TimetableSettingsScreen> {
   Widget build(BuildContext context) {
     if (loading) {
       return Scaffold(
-        appBar: AppBar(title: const Text("Timetable Settings")),
+        appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("Timetable Settings")),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text("Timetable Settings")),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text("Timetable Settings")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Column(

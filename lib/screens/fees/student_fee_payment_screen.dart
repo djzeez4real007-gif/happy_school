@@ -1,6 +1,7 @@
 import '../../core/permissions.dart';
 import '../../services/auth_service.dart';
 import 'package:flutter/material.dart';
+import '../../core/widgets/app_back.dart';
 
 import '../../core/theme/app_colors.dart';
 import '../../core/utils/sessions.dart';
@@ -220,7 +221,8 @@ class _StudentFeePaymentScreenState extends State<StudentFeePaymentScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffold(context),
-      appBar: AppBar(title: const Text('Receive Payment'), elevation: 0),
+      appBar: AppBar(
+        leading: AppBack.leading(context),title: const Text('Receive Payment'), elevation: 0),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 28),
         children: [
